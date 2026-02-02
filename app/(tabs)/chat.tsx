@@ -14,21 +14,17 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { ScreenContainer } from '@/components/screen-container';
-import { useChatContext } from '@/lib/context/chat-context';
-import { getPersonalityDescription } from '@/lib/types/personality';
+import { useChatContext } from '@/lib/context/chat-context-stable';
+import { useColors } from '@/hooks/use-colors';
 import { cn } from '@/lib/utils';
-import type { ChatMessage } from '@/lib/types/personality';
+import type { ChatMessage } from '@/lib/context/chat-context-stable';
 
 const NOVA_AVATAR = require('@/assets/images/icon.png');
 
 export default function ChatScreen() {
-  const {
-    messages,
-    loading,
-    personality,
-    novaName,
-    sendMessage,
-  } = useChatContext();
+  const colors = useColors();
+  const { state, sendMessage } = useChatContext();
+  const { messages, isLoading, personality, novaName, currentExpression } = state;
 
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -57,13 +53,24 @@ export default function ChatScreen() {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <ScreenContainer className="flex items-center justify-center">
-        <ActivityIndicator size="large" color="#FF6B9D" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </ScreenContainer>
     );
   }
+
+  // 获取性格描述
+  const getPersonalityDescription = () => {
+    const traits = [];
+    if (personality.gentleness > 60) traits.push('温柔');
+    if (personality.liveliness > 60) traits.push('活泼');
+    if (personality.intellectuality > 60) traits.push('知性');
+    if (personality.mischief > 60) traits.push('调皮');
+    if (personality.mystery > 60) traits.push('神秘');
+    return traits.length > 0 ? traits.join('、') : '平衡温和';
+  };
 
   return (
     <ScreenContainer className="flex-1 bg-background" edges={['top', 'left', 'right']}>
@@ -77,7 +84,7 @@ export default function ChatScreen() {
           <View>
             <Text className="text-base font-semibold text-foreground">{novaName}</Text>
             <Text className="text-xs text-muted">
-              {getPersonalityDescription(personality)}
+              {getPersonalityDescription()}
             </Text>
           </View>
         </View>

@@ -5,7 +5,7 @@ import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Platform } from "react-native";
 import { useColors } from "@/hooks/use-colors";
-import { ChatProvider } from "@/lib/context/chat-context-v3";
+import { ChatProvider } from "@/lib/context/chat-context-stable";
 
 export default function TabLayout() {
   const colors = useColors();
