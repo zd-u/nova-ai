@@ -1,17 +1,22 @@
 import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useEffect } from "react";
+import { Platform } from "react-native";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Platform } from "react-native";
 import { useColors } from "@/hooks/use-colors";
-import { ChatProvider } from "@/lib/context/chat-context-stable";
+import { ChatProvider } from "@/lib/context/chat-context-ai";
 
 export default function TabLayout() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const bottomPadding = Platform.OS === "web" ? 12 : Math.max(insets.bottom, 8);
   const tabBarHeight = 56 + bottomPadding;
+
+  useEffect(() => {
+    // DeepSeek API 密钥已在环境变量中配置
+  }, []);
 
   return (
     <ChatProvider>

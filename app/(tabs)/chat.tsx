@@ -14,17 +14,17 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { ScreenContainer } from '@/components/screen-container';
-import { useChatContext } from '@/lib/context/chat-context-stable';
+import { useChatContext } from '@/lib/context/chat-context-ai';
 import { useColors } from '@/hooks/use-colors';
 import { cn } from '@/lib/utils';
-import type { ChatMessage } from '@/lib/context/chat-context-stable';
+import type { ChatMessage } from '@/lib/context/chat-context-ai';
 
 const NOVA_AVATAR = require('@/assets/images/icon.png');
 
 export default function ChatScreen() {
   const colors = useColors();
   const { state, sendMessage } = useChatContext();
-  const { messages, isLoading, personality, novaName, currentExpression } = state;
+  const { messages, isLoading, personality, novaName, currentExpression, emotionalState } = state;
 
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -46,8 +46,6 @@ export default function ChatScreen() {
       setIsSending(true);
       await sendMessage(inputText);
       setInputText('');
-    } catch (error) {
-      console.error('Failed to send message:', error);
     } finally {
       setIsSending(false);
     }
@@ -66,30 +64,41 @@ export default function ChatScreen() {
     const traits = [];
     if (personality.gentleness > 60) traits.push('温柔');
     if (personality.liveliness > 60) traits.push('活泼');
-    if (personality.intellectuality > 60) traits.push('知性');
+    if (personality.intellectuality > 60) traits.push('聪慧');
     if (personality.mischief > 60) traits.push('调皮');
     if (personality.mystery > 60) traits.push('神秘');
-    return traits.length > 0 ? traits.join('、') : '平衡温和';
+    return traits.length > 0 ? traits.join('、') : '神秘';
+  };
+
+  // 获取情绪描述
+  const getEmotionDescription = () => {
+    if (emotionalState.happiness > 70) return '😊 开心';
+    if (emotionalState.sadness > 60) return '😢 伤心';
+    if (emotionalState.anger > 50) return '😠 生气';
+    if (emotionalState.excitement > 70) return '🤩 兴奋';
+    if (emotionalState.shyness > 60) return '😳 害羞';
+    if (emotionalState.boredom > 70) return '😑 无聊';
+    return '😌 平静';
   };
 
   return (
-    <ScreenContainer className="flex-1 bg-background" edges={['top', 'left', 'right']}>
+    <ScreenContainer className="flex-1 bg-background">
       {/* 顶部栏 */}
       <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
         <View className="flex-row items-center gap-3">
           <Image
             source={NOVA_AVATAR}
-            className="w-10 h-10 rounded-full"
+            style={{ width: 40, height: 40, borderRadius: 20 }}
           />
           <View>
-            <Text className="text-base font-semibold text-foreground">{novaName}</Text>
+            <Text className="text-lg font-bold text-foreground">{novaName}</Text>
             <Text className="text-xs text-muted">
-              {getPersonalityDescription()}
+              {getPersonalityDescription()} · {getEmotionDescription()}
             </Text>
           </View>
         </View>
         <Pressable className="p-2">
-          <Text className="text-lg">⋮</Text>
+          <Text className="text-xl">⋮</Text>
         </Pressable>
       </View>
 
@@ -102,12 +111,12 @@ export default function ChatScreen() {
           <View
             className={cn(
               'px-4 py-2',
-              item.role === 'user' ? 'flex-row justify-end' : 'flex-row justify-start'
+              item.role === 'user' ? 'items-end' : 'items-start'
             )}
           >
             <View
               className={cn(
-                'max-w-xs rounded-2xl px-4 py-2',
+                'px-4 py-3 rounded-2xl max-w-xs',
                 item.role === 'user'
                   ? 'bg-primary rounded-br-none'
                   : 'bg-surface rounded-bl-none'
@@ -116,73 +125,50 @@ export default function ChatScreen() {
               <Text
                 className={cn(
                   'text-base leading-relaxed',
-                  item.role === 'user' ? 'text-white' : 'text-foreground'
+                  item.role === 'user' ? 'text-background' : 'text-foreground'
                 )}
               >
                 {item.content}
               </Text>
-              <Text
-                className={cn(
-                  'text-xs mt-1',
-                  item.role === 'user' ? 'text-white opacity-70' : 'text-muted'
-                )}
-              >
-                {new Date(item.timestamp).toLocaleTimeString('zh-CN', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </Text>
             </View>
+            <Text className="text-xs text-muted mt-1">
+              {new Date(item.timestamp).toLocaleTimeString('zh-CN', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </Text>
           </View>
         )}
+        contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end' }}
         scrollEnabled={true}
-        contentContainerStyle={{ flexGrow: 1 }}
-        ListEmptyComponent={
-          <View className="flex-1 items-center justify-center gap-4">
-            <Image
-              source={NOVA_AVATAR}
-              className="w-24 h-24 rounded-full opacity-50"
-            />
-            <Text className="text-lg font-semibold text-foreground">
-              嗨！我是 {novaName}
-            </Text>
-            <Text className="text-sm text-muted text-center px-6">
-              很高兴认识你！说点什么吧，让我们开始聊天～
-            </Text>
-          </View>
-        }
       />
 
       {/* 输入框 */}
-      <View className="px-4 py-3 border-t border-border gap-3">
-        <View className="flex-row items-center gap-2 bg-surface rounded-full px-4 py-2">
-          <TextInput
-            value={inputText}
-            onChangeText={setInputText}
-            placeholder="说点什么吧..."
-            placeholderTextColor="#999"
-            className="flex-1 text-foreground text-base"
-            multiline
-            maxLength={500}
-            editable={!isSending}
-          />
-          <Pressable
-            onPress={handleSendMessage}
-            disabled={isSending || inputText.trim() === ''}
-            className={cn(
-              'p-2 rounded-full',
-              isSending || inputText.trim() === ''
-                ? 'bg-muted opacity-50'
-                : 'bg-primary'
-            )}
-          >
-            {isSending ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <Text className="text-lg">➤</Text>
-            )}
-          </Pressable>
-        </View>
+      <View className="px-4 py-3 border-t border-border flex-row items-center gap-2">
+        <TextInput
+          value={inputText}
+          onChangeText={setInputText}
+          placeholder="说点什么吧..."
+          placeholderTextColor={colors.muted}
+          className="flex-1 px-4 py-2 rounded-full bg-surface text-foreground"
+          multiline
+          maxLength={200}
+          editable={!isSending}
+        />
+        <Pressable
+          onPress={handleSendMessage}
+          disabled={isSending || inputText.trim() === ''}
+          className={cn(
+            'p-2 rounded-full',
+            isSending || inputText.trim() === ''
+              ? 'bg-muted opacity-50'
+              : 'bg-primary'
+          )}
+        >
+          <Text className="text-lg">
+            {isSending ? '⏳' : '➤'}
+          </Text>
+        </Pressable>
       </View>
     </ScreenContainer>
   );
