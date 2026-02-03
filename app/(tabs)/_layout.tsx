@@ -6,7 +6,7 @@ import { Platform } from "react-native";
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
-import { ChatProvider } from "@/lib/context/chat-context-ai";
+import { ChatProvider } from "@/lib/context/chat-context-final";
 
 export default function TabLayout() {
   const colors = useColors();
@@ -15,7 +15,7 @@ export default function TabLayout() {
   const tabBarHeight = 56 + bottomPadding;
 
   useEffect(() => {
-    // DeepSeek API 密钥已在环境变量中配置
+    // 初始化应用
   }, []);
 
   return (
