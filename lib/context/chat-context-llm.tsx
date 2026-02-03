@@ -12,7 +12,6 @@ import {
   updateEmotionalState,
 } from '@/lib/emotion/engine';
 import { ExpressionType, getExpressionByEmotion } from '@/lib/emotion/expression';
-import { trpc } from '@/lib/trpc';
 
 /**
  * 聊天消息
@@ -107,6 +106,74 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
 }
 
 /**
+ * 调用 LLM API 生成回复
+ */
+async function callLLMAPI(params: {
+  userMessage: string;
+  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>;
+  personality: PersonalityTraits;
+  emotionalState: EmotionalState;
+  novaName: string;
+}): Promise<string> {
+  try {
+    // 构建系统提示词
+    const systemPrompt = `你是一个名叫 ${params.novaName} 的 AI 女友。
+
+重要指示：
+1. 必须直接回应用户说的内容
+2. 如果用户说"你好"，回复问候
+3. 如果用户问问题，尝试回答
+4. 回复应该短而精，通常 1-2 句话
+5. 用中文回复，语气自然亲切
+6. 不要重复用户说过的话
+7. 记住对话历史，保持连贯性`;
+
+    // 构建消息列表
+    const messages = [
+      { role: 'system' as const, content: systemPrompt },
+      ...params.conversationHistory.slice(-5).map((msg) => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+      })),
+      { role: 'user' as const, content: params.userMessage },
+    ];
+
+    // 调用服务器 API
+    const response = await fetch('http://127.0.0.1:3000/api/trpc/ai.generateReply', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        json: {
+          userMessage: params.userMessage,
+          conversationHistory: params.conversationHistory,
+          personality: params.personality,
+          emotionalState: params.emotionalState,
+          novaName: params.novaName,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    // 处理 tRPC 响应格式
+    if (data.result?.data?.reply) {
+      return data.result.data.reply;
+    }
+    
+    throw new Error('Invalid response format');
+  } catch (error) {
+    console.error('LLM API error:', error);
+    throw error;
+  }
+}
+
+/**
  * 聊天提供者
  */
 export function ChatProvider({ children }: { children: React.ReactNode }) {
@@ -172,20 +239,27 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           content: msg.content,
         }));
 
-        // 调用服务器 LLM 生成回复
+        // 调用 LLM API 生成回复
         let aiReply = '';
         try {
-          const response = await (trpc.ai.generateReply as any).mutateAsync({
+          aiReply = await callLLMAPI({
             userMessage: message,
             conversationHistory,
             personality: stateRef.current.personality,
             emotionalState: stateRef.current.emotionalState,
             novaName: stateRef.current.novaName,
           });
-          aiReply = response.reply;
         } catch (llmError) {
           console.error('LLM error:', llmError);
-          aiReply = '我有点不知道说什么呢...你能再说一遍吗？';
+          // 使用简单的备用回复
+          const fallbackReplies = [
+            '你说的很有意思呢！',
+            '我很感兴趣，能再说一遍吗？',
+            '你好，很高兴和你聊天！',
+            '我有点累了，能休息一下吗？',
+            '你说的对，我同意你的看法。',
+          ];
+          aiReply = fallbackReplies[Math.floor(Math.random() * fallbackReplies.length)];
         }
 
         // 添加 AI 回复
@@ -266,9 +340,7 @@ function analyzeUserMessage(message: string): any {
     lowerMessage.includes('喜欢') ||
     lowerMessage.includes('爱') ||
     lowerMessage.includes('开心') ||
-    lowerMessage.includes('高兴') ||
-    lowerMessage.includes('😊') ||
-    lowerMessage.includes('😍')
+    lowerMessage.includes('高兴')
   ) {
     return {
       type: 'user_positive_message',
@@ -281,21 +353,11 @@ function analyzeUserMessage(message: string): any {
     lowerMessage.includes('难过') ||
     lowerMessage.includes('伤心') ||
     lowerMessage.includes('生气') ||
-    lowerMessage.includes('烦') ||
-    lowerMessage.includes('😢') ||
-    lowerMessage.includes('😠')
+    lowerMessage.includes('烦')
   ) {
     return {
       type: 'user_negative_message',
       intensity: 25,
-    };
-  }
-
-  // 检测无聊
-  if (lowerMessage.includes('无聊') || lowerMessage.includes('闷')) {
-    return {
-      type: 'user_bored_message',
-      intensity: 20,
     };
   }
 
