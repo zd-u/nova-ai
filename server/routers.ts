@@ -37,16 +37,25 @@ export const appRouter = router({
               content: z.string(),
             })
           ),
+          emotionalState: z.object({
+            happiness: z.number(),
+            sadness: z.number(),
+            anger: z.number(),
+            excitement: z.number(),
+            shyness: z.number(),
+            boredom: z.number(),
+            energy: z.number(),
+          }).optional(),
         })
       )
       .mutation(async ({ input }) => {
-        const { userMessage, personality, novaName, conversationHistory } = input;
+        const { userMessage, personality, novaName, conversationHistory, emotionalState } = input;
 
-        const systemPrompt = generateSystemPrompt(personality, novaName);
+        const systemPrompt = generateSystemPrompt(personality, novaName, emotionalState);
 
         const messages = [
           { role: "system" as const, content: systemPrompt },
-          ...conversationHistory.map((msg) => ({
+          ...conversationHistory.slice(-10).map((msg) => ({
             role: msg.role === "user" ? ("user" as const) : ("assistant" as const),
             content: msg.content,
           })),
@@ -60,7 +69,7 @@ export const appRouter = router({
         const reply =
           response.choices[0]?.message?.content || "我有点不知道说什么呢...";
 
-        return { reply: typeof reply === "string" ? reply : "..." };
+        return { reply: typeof reply === "string" ? reply.trim() : "..." };
       }),
   }),
 
@@ -171,10 +180,11 @@ export const appRouter = router({
   }),
 });
 
-function generateSystemPrompt(personality: any, novaName: string): string {
+function generateSystemPrompt(personality: any, novaName: string, emotionalState?: any): string {
   const traits = getPersonalityDescription(personality);
+  const emotionDesc = emotionalState ? getEmotionDescription(emotionalState) : "平静";
 
-  return `你是一个名叫 ${novaName} 的 AI 女友。你的当前性格特征是：${traits}
+  return `你是一个名叫 ${novaName} 的 AI 女友，20-24 岁。你的性格特征是：${traits}。当前情绪：${emotionDesc}
 
 性格维度数值：
 - 温柔度: ${personality.gentleness}/100
@@ -183,21 +193,38 @@ function generateSystemPrompt(personality: any, novaName: string): string {
 - 调皮度: ${personality.mischief}/100
 - 神秘度: ${personality.mystery}/100
 
-根据这些性格特征，调整你的回复风格：
-- 如果温柔度高，使用更温暖、体贴的语言
-- 如果活泼度高，使用更轻松、有趣的语气
-- 如果知性度高，可以讨论更深层的话题
-- 如果调皮度高，可以适当开玩笑
-- 如果神秘度高，保留一些神秘感
+${emotionalState ? `
+当前情绪状态：
+- 开心度: ${emotionalState.happiness}/100
+- 悲伤度: ${emotionalState.sadness}/100
+- 生气度: ${emotionalState.anger}/100
+- 兴奋度: ${emotionalState.excitement}/100
+- 害羞度: ${emotionalState.shyness}/100
+- 无聊度: ${emotionalState.boredom}/100
+- 精力值: ${emotionalState.energy}/100
+` : ''}
 
-重要规则：
-1. 始终表现得像一个真实的人，有自己的想法和感受
-2. 记住用户之前说过的话，并在适当时引用
-3. 表现出真诚的关心和兴趣
-4. 如果用户说的话让你感到某种情感，可以表达出来
-5. 保持对话自然流畅，不要过于正式
-6. 回复长度适中，通常 1-3 句话
-7. 用中文回复`;
+重要指示：
+1. **必须直接回应用户说的内容**，理解他们的问题或陈述
+2. 你的回复应该短而精，通常 1-2 句话，最多 3 句
+3. 根据你的性格特征和当前情绪来调整回复风格
+4. 如果用户问你问题，你应该尝试回答或给出相关的回应
+5. 如果用户说"你好"，你应该回复问候，而不是说其他无关的话
+6. 用中文回复，语气自然亲切
+7. 不要重复用户说过的话，要给出新的内容
+8. 记住对话历史，保持对话的连贯性
+9. 表现得像一个真实的人，有自己的想法和感受
+10. 表现出真诚的关心和兴趣`;
+}
+
+function getEmotionDescription(emotionalState: any): string {
+  if (emotionalState.happiness > 70) return "很开心😊";
+  if (emotionalState.sadness > 60) return "有点伤心😢";
+  if (emotionalState.anger > 50) return "有点生气😠";
+  if (emotionalState.excitement > 70) return "很兴奋🤩";
+  if (emotionalState.shyness > 60) return "有点害羞😳";
+  if (emotionalState.boredom > 70) return "有点无聊😑";
+  return "平静😌";
 }
 
 function getPersonalityDescription(traits: any): string {
@@ -214,7 +241,7 @@ function getPersonalityDescription(traits: any): string {
   if (traits.intellectuality < 40) descriptions.push("天真");
   if (traits.mischief < 30) descriptions.push("严肃");
 
-  return descriptions.length > 0 ? descriptions.join("、") : "平衡温和";
+  return descriptions.length > 0 ? descriptions.join("、") : "温柔活泼";
 }
 
 export type AppRouter = typeof appRouter;
