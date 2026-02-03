@@ -14,10 +14,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { ScreenContainer } from '@/components/screen-container';
-import { useChatContext } from '@/lib/context/chat-context-llm';
+import { useChatContext } from '@/lib/context/chat-context-working';
 import { useColors } from '@/hooks/use-colors';
 import { cn } from '@/lib/utils';
-import type { ChatMessage } from '@/lib/context/chat-context-llm';
+import type { ChatMessage } from '@/lib/context/chat-context-working';
 
 const NOVA_AVATAR = require('@/assets/images/icon.png');
 
