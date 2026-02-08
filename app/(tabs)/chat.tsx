@@ -14,21 +14,21 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { ScreenContainer } from '@/components/screen-container';
-import { useChatContext } from '@/lib/context/chat-context-working';
+import { useChat } from '@/lib/context/chat-context-precise';
 import { useColors } from '@/hooks/use-colors';
 import { cn } from '@/lib/utils';
-import type { ChatMessage } from '@/lib/context/chat-context-working';
+import type { Message } from '@/lib/context/chat-context-precise';
 
 const NOVA_AVATAR = require('@/assets/images/icon.png');
 
 export default function ChatScreen() {
   const colors = useColors();
-  const { state, sendMessage } = useChatContext();
-  const { messages, isLoading, personality, novaName, currentExpression, emotionalState } = state;
+  const { state, sendMessage } = useChat();
+  const { messages, loading: isLoading } = state;
 
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const flatListRef = useRef<FlatList<ChatMessage>>(null);
+  const flatListRef = useRef<FlatList<Message>>(null);
 
   // 自动滚动到底部
   useEffect(() => {
@@ -62,22 +62,17 @@ export default function ChatScreen() {
   // 获取性格描述
   const getPersonalityDescription = () => {
     const traits = [];
-    if (personality.gentleness > 60) traits.push('温柔');
-    if (personality.liveliness > 60) traits.push('活泼');
-    if (personality.intellectuality > 60) traits.push('聪慧');
-    if (personality.mischief > 60) traits.push('调皮');
-    if (personality.mystery > 60) traits.push('神秘');
-    return traits.length > 0 ? traits.join('、') : '神秘';
+    if (state.personality.warmth > 0.6) traits.push('温柔');
+    if (state.personality.liveliness > 0.6) traits.push('活泼');
+    if (state.personality.intelligence > 0.6) traits.push('聪慧');
+    return traits.length > 0 ? traits.join('、') : '温柔';
   };
 
   // 获取情绪描述
   const getEmotionDescription = () => {
-    if (emotionalState.happiness > 70) return '😊 开心';
-    if (emotionalState.sadness > 60) return '😢 伤心';
-    if (emotionalState.anger > 50) return '😠 生气';
-    if (emotionalState.excitement > 70) return '🤩 兴奋';
-    if (emotionalState.shyness > 60) return '😳 害羞';
-    if (emotionalState.boredom > 70) return '😑 无聊';
+    if (state.emotion.happiness > 0.7) return '😊 开心';
+    if (state.emotion.sadness > 0.6) return '😢 伤心';
+    if (state.emotion.affection > 0.7) return '💕 亲密';
     return '😌 平静';
   };
 
@@ -91,7 +86,7 @@ export default function ChatScreen() {
             style={{ width: 40, height: 40, borderRadius: 20 }}
           />
           <View>
-            <Text className="text-lg font-bold text-foreground">{novaName}</Text>
+            <Text className="text-lg font-bold text-foreground">Nova</Text>
             <Text className="text-xs text-muted">
               {getPersonalityDescription()} · {getEmotionDescription()}
             </Text>
@@ -111,13 +106,13 @@ export default function ChatScreen() {
           <View
             className={cn(
               'px-4 py-2',
-              item.role === 'user' ? 'items-end' : 'items-start'
+              item.sender === 'user' ? 'items-end' : 'items-start'
             )}
           >
             <View
               className={cn(
                 'px-4 py-3 rounded-2xl max-w-xs',
-                item.role === 'user'
+                item.sender === 'user'
                   ? 'bg-primary rounded-br-none'
                   : 'bg-surface rounded-bl-none'
               )}
@@ -125,7 +120,7 @@ export default function ChatScreen() {
               <Text
                 className={cn(
                   'text-base leading-relaxed',
-                  item.role === 'user' ? 'text-background' : 'text-foreground'
+                  item.sender === 'user' ? 'text-background' : 'text-foreground'
                 )}
               >
                 {item.content}

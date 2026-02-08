@@ -19,8 +19,7 @@ export default function TabLayout() {
   }, []);
 
   return (
-    <ChatProvider>
-      <Tabs
+    <Tabs
         screenOptions={{
           tabBarActiveTintColor: colors.tint,
           headerShown: false,
@@ -57,6 +56,5 @@ export default function TabLayout() {
           }}
         />
       </Tabs>
-    </ChatProvider>
   );
 }
