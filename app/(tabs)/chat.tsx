@@ -19,7 +19,8 @@ import { useColors } from '@/hooks/use-colors';
 import { cn } from '@/lib/utils';
 import type { Message } from '@/lib/context/chat-context-precise';
 
-const NOVA_AVATAR = require('@/assets/images/icon.png');
+// const NOVA_AVATAR = require('@/assets/images/icon.png'); // 已移除
+const NOVA_AVATAR = null;
 
 export default function ChatScreen() {
   const colors = useColors();
@@ -81,10 +82,11 @@ export default function ChatScreen() {
       {/* 顶部栏 */}
       <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
         <View className="flex-row items-center gap-3">
-          <Image
+          {/* <Image
             source={NOVA_AVATAR}
             style={{ width: 40, height: 40, borderRadius: 20 }}
-          />
+          /> */}
+          <View className="w-10 h-10 rounded-full bg-primary" />
           <View>
             <Text className="text-lg font-bold text-foreground">Nova</Text>
             <Text className="text-xs text-muted">
