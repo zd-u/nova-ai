@@ -23,18 +23,18 @@ import { cn } from '@/lib/utils';
 import * as Haptics from 'expo-haptics';
 
 /**
- * 表情图片映射（已移除，使用占位符）
+ * 表情图片映射
  */
 const EXPRESSION_IMAGES: Record<string, any> = {
-  happy: null,
-  sad: null,
-  shy: null,
-  angry: null,
-  bored: null,
-  excited: null,
-  thinking: null,
-  confused: null,
-  neutral: null,
+  happy: require('@/assets/expressions/nova-happy.png'),
+  sad: require('@/assets/expressions/nova-sad.png'),
+  shy: require('@/assets/expressions/nova-shy.png'),
+  angry: require('@/assets/expressions/nova-angry.png'),
+  bored: require('@/assets/expressions/nova-bored.png'),
+  excited: require('@/assets/expressions/nova-excited.png'),
+  thinking: require('@/assets/expressions/nova-thinking.png'),
+  confused: require('@/assets/expressions/nova-confused.png'),
+  neutral: require('@/assets/expressions/nova-neutral.png'),
 };
 
 /**
@@ -120,7 +120,7 @@ export default function ChatScreen() {
 
   // 获取表情图片
   const getExpressionImage = () => {
-    return EXPRESSION_IMAGES[state.currentExpression] || null;
+    return EXPRESSION_IMAGES[state.currentExpression] || EXPRESSION_IMAGES.neutral;
   };
 
   // 渲染消息气泡

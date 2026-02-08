@@ -15,8 +15,7 @@ import { ScreenContainer } from '@/components/screen-container';
 import { useChatContext } from '@/lib/context/chat-context';
 import { getPersonalityDescription } from '@/lib/types/personality';
 
-// const NOVA_AVATAR = require('@/assets/images/icon.png'); // 已移除
-const NOVA_AVATAR = null;
+const NOVA_AVATAR = require('@/assets/images/icon.png');
 
 export default function ProfileScreen() {
   const {
@@ -39,11 +38,10 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="px-4 py-6">
         {/* 头像和基本信息 */}
         <View className="items-center gap-4 mb-8">
-          {/* <Image
+          <Image
             source={NOVA_AVATAR}
             className="w-32 h-32 rounded-full"
-          /> */}
-          <View className="w-32 h-32 rounded-full bg-primary" />
+          />
           <View className="items-center gap-2">
             <Text className="text-3xl font-bold text-foreground">{novaName}</Text>
             <Text className="text-base text-primary font-semibold">
