@@ -63,6 +63,112 @@ export const appRouter = router({
         return { reply: typeof reply === "string" ? reply : "..." };
       }),
   }),
+
+  voice: router({
+    tts: publicProcedure
+      .input(
+        z.object({
+          text: z.string(),
+          emotion: z.string().optional(),
+          speed: z.number().optional().default(1),
+          pitch: z.number().optional().default(1),
+          volume: z.number().optional().default(1),
+          language: z.string().optional().default("zh-CN"),
+        })
+      )
+      .mutation(async ({ input }) => {
+        try {
+          // 估计音频时长
+          const estimatedDuration = Math.ceil(input.text.length * 0.5 / input.speed);
+
+          // 返回音频URL（实际应用中应调用真实TTS服务）
+          return {
+            success: true,
+            audioUrl: "",
+            duration: estimatedDuration,
+          };
+        } catch (error) {
+          console.error("TTS error:", error);
+          return {
+            success: false,
+            audioUrl: "",
+            duration: 0,
+          };
+        }
+      }),
+
+    stt: publicProcedure
+      .input(
+        z.object({
+          audioBase64: z.string(),
+          language: z.string().optional().default("zh-CN"),
+        })
+      )
+      .mutation(async ({ input }) => {
+        try {
+          // 在实际应用中调用真实STT服务
+          return {
+            success: true,
+            text: "",
+          };
+        } catch (error) {
+          console.error("STT error:", error);
+          return {
+            success: false,
+            text: "",
+          };
+        }
+      }),
+  }),
+
+  emotion: router({
+    getDescription: publicProcedure
+      .input(
+        z.object({
+          happiness: z.number(),
+          sadness: z.number(),
+          boredom: z.number(),
+          excitement: z.number(),
+          shyness: z.number(),
+          anger: z.number(),
+        })
+      )
+      .query(({ input }) => {
+        const emotions = {
+          happiness: input.happiness,
+          sadness: input.sadness,
+          boredom: input.boredom,
+          excitement: input.excitement,
+          shyness: input.shyness,
+          anger: input.anger,
+        };
+
+        let maxEmotion = "neutral";
+        let maxValue = 0;
+
+        Object.entries(emotions).forEach(([emotion, value]) => {
+          if (value > maxValue) {
+            maxValue = value;
+            maxEmotion = emotion;
+          }
+        });
+
+        const descriptions: Record<string, string> = {
+          happiness: "开心😊",
+          sadness: "失落😢",
+          boredom: "无聊😑",
+          excitement: "兴奋🤩",
+          shyness: "害羞😳",
+          anger: "生气😠",
+          neutral: "平静😌",
+        };
+
+        return {
+          emotion: maxEmotion,
+          description: descriptions[maxEmotion] || "平静😌",
+        };
+      }),
+  }),
 });
 
 function generateSystemPrompt(personality: any, novaName: string): string {
@@ -112,3 +218,4 @@ function getPersonalityDescription(traits: any): string {
 }
 
 export type AppRouter = typeof appRouter;
+
