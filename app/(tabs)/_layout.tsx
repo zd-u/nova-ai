@@ -5,6 +5,7 @@ import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Platform } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { ChatProvider } from "@/lib/context/chat-context";
 
 export default function TabLayout() {
   const colors = useColors();
@@ -13,28 +14,44 @@ export default function TabLayout() {
   const tabBarHeight = 56 + bottomPadding;
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: colors.tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarStyle: {
-          paddingTop: 8,
-          paddingBottom: bottomPadding,
-          height: tabBarHeight,
-          backgroundColor: colors.background,
-          borderTopColor: colors.border,
-          borderTopWidth: 0.5,
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+    <ChatProvider>
+      <Tabs
+        screenOptions={{
+          tabBarActiveTintColor: colors.tint,
+          headerShown: false,
+          tabBarButton: HapticTab,
+          tabBarStyle: {
+            paddingTop: 8,
+            paddingBottom: bottomPadding,
+            height: tabBarHeight,
+            backgroundColor: colors.background,
+            borderTopColor: colors.border,
+            borderTopWidth: 0.5,
+          },
         }}
-      />
-    </Tabs>
+      >
+        <Tabs.Screen
+          name="chat"
+          options={{
+            title: "聊天",
+            tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: "档案",
+            tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="settings"
+          options={{
+            title: "设置",
+            tabBarIcon: ({ color }) => <IconSymbol size={28} name="chevron.left.forwardslash.chevron.right" color={color} />,
+          }}
+        />
+      </Tabs>
+    </ChatProvider>
   );
 }
