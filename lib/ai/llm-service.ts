@@ -3,8 +3,8 @@
  * 调用服务器的 LLM API 生成 Nova 的智能回复
  */
 
-import { trpc } from '@/lib/trpc';
 import { PersonalityTraits } from '@/lib/types/personality';
+import { getApiBaseUrl } from '@/constants/oauth';
 
 /**
  * 生成 Nova 的回复
@@ -16,15 +16,49 @@ export async function generateNovaReply(
   conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>
 ): Promise<string> {
   try {
-    const response = await trpc.ai.generateReply.useMutation();
-    const result = await response.mutateAsync({
-      userMessage,
-      personality,
-      novaName,
-      conversationHistory,
+    // 获取 API 基础 URL
+    const baseUrl = getApiBaseUrl();
+    console.log('API Base URL:', baseUrl);
+    
+    const apiUrl = `${baseUrl}/api/trpc/ai.generateReply`;
+    console.log('Full API URL:', apiUrl);
+    
+    // 调用 tRPC 路由
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        json: {
+          userMessage,
+          personality,
+          novaName,
+          conversationHistory,
+        },
+      }),
     });
 
-    return result.reply;
+    console.log('API Response Status:', response.status);
+    console.log('API Response Headers:', Object.fromEntries(response.headers.entries()));
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API response error:', response.status, errorText);
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('API response data:', data);
+    
+    // tRPC 返回的格式是 { result: { data: { json: { reply: "..." } } } }
+    const reply = data.result?.data?.json?.reply;
+    
+    if (typeof reply === 'string' && reply.length > 0) {
+      return reply;
+    }
+
+    throw new Error('Invalid response format');
   } catch (error) {
     console.error('Failed to generate reply:', error);
     // 如果 API 调用失败，返回备用回复
