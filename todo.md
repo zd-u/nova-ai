@@ -55,3 +55,49 @@
 - [x] 语音输出系统（TTS - 文字转语音）
 - [x] 表情生成（生成多种情绪表情图片）
 - [x] 情绪同步（语音、表情、文字的情绪一致性）
+
+## 第一优先级：真实记忆系统
+- [x] 设计用户档案数据结构 (user_profile, name, age, interest, important_events)
+- [x] 设计长期记忆库数据结构 (memory_store)
+- [x] 创建数据库表：user_profiles, memories
+- [x] 实现记忆保存功能 (saveMemory)
+- [x] 实现记忆搜索功能 (searchMemories)
+- [x] 实现记忆召回到上下文 (recallMemoriesForContext)
+- [x] 集成记忆到 LLM prompt
+
+## 第二优先级：情绪识别系统
+- [x] 设计情绪识别数据结构 (emotion_detection)
+- [x] 实现情绪分类模块 (detectEmotion)
+- [x] 创建情绪到语气映射 (emotionToTone)
+- [x] 实现基于情绪的人格参数调整
+- [x] 实现情绪历史记录
+- [x] 集成情绪识别到聊天流程
+
+## 第三优先级：人格演化系统
+- [x] 实现行为触发逻辑 (behaviorTriggers)
+- [x] 创建用户行为分类 (praise, coldness, intimacy, etc.)
+- [x] 实现人格参数动态调整
+- [x] 创建人格演化历史记录
+- [x] 实现人格参数的持久化保存
+- [x] 集成人格演化到聊天流程
+
+## 第四优先级：关系系统
+- [x] 设计关系等级数据结构 (stranger, friend, ambiguous, lover, intimate_partner)
+- [x] 创建关系等级的内容限制规则
+- [x] 实现关系等级的自动升级逻辑
+- [x] 创建不同关系等级的 prompt 模板
+- [x] 实现关系历史记录
+- [x] 集成关系系统到聊天流程
+
+## 最近修复
+- [x] 修复 LLM API 调用 404 错误
+- [x] 设置 EXPO_PUBLIC_API_BASE_URL 环境变量
+- [x] 创建 LLM API 集成测试（全部通过）
+- [x] 生成 Nova 品牌图标
+- [x] 实现记忆系统客户端服务
+- [x] 实现情绪识别系统
+- [x] 实现人格演化系统
+- [x] 实现关系系统
+- [x] 扩展 tRPC 路由，添加所有系统的 API
+- [x] 集成所有系统到聊天流程
+- [x] 创建了 29 个核心系统测试（全部通过）

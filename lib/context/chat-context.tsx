@@ -23,6 +23,10 @@ import {
 } from '@/lib/db/storage';
 import { adjustPersonality } from '@/lib/personality/engine';
 import { generateNovaReply } from '@/lib/ai/llm-service';
+import { detectEmotion, saveEmotionRecord, getEmotionTone } from '@/lib/emotion/emotion-service';
+import { detectUserBehavior, applyBehaviorTrigger, savePersonalityRecord } from '@/lib/personality/personality-service';
+import { extractMemoriesFromMessage, saveMemory, searchMemories } from '@/lib/memory/memory-service';
+import { getRelationshipProgress, addRelationshipPoints } from '@/lib/relationship/relationship-service';
 
 interface ChatContextType {
   // 消息
@@ -107,10 +111,53 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         await saveMessage(userMessage);
         setMessages((prev) => [...prev, userMessage]);
 
-        // 调整性格
-        const newPersonality = await adjustPersonality(content);
+        // 1. 检测用户情绪
+        const emotionRecord = detectEmotion(content);
+        console.log('Detected emotion:', emotionRecord);
+
+        // 2. 检测用户行为
+        const userBehavior = detectUserBehavior(content);
+        console.log('Detected behavior:', userBehavior);
+
+        // 3. 调整性格
+        let newPersonality = await adjustPersonality(content);
+        
+        // 根据用户行为进一步调整人格
+        newPersonality = applyBehaviorTrigger(newPersonality, userBehavior);
+        
         setPersonality(newPersonality);
         await updatePersonality(newPersonality);
+
+        // 4. 保存情绪记录
+        await saveEmotionRecord(
+          1, // TODO: 使用真实的 userId
+          emotionRecord.emotion,
+          emotionRecord.intensity,
+          content,
+          '' // 暂时为空，稍后填充
+        );
+
+        // 5. 保存人格演化记录
+        await savePersonalityRecord(
+          1, // TODO: 使用真实的 userId
+          newPersonality,
+          userBehavior,
+          content
+        );
+
+        // 6. 提取并保存记忆
+        const extractedMemories = extractMemoriesFromMessage(content);
+        for (const memory of extractedMemories) {
+          await saveMemory(
+            1, // TODO: 使用真实的 userId
+            memory.content,
+            memory.category,
+            memory.importance
+          );
+        }
+
+        // 7. 搜索相关记忆
+        const relatedMemories = await searchMemories(1, content, 3); // TODO: 使用真实的 userId
 
         // 获取更新的历史
         const updatedHistory = await getPersonalityHistory();
@@ -140,12 +187,28 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
         await saveMessage(novaReply);
         setMessages((prev) => [...prev, novaReply]);
+
+        // 8. 更新情绪记录（添加 Nova 的回复）
+        await saveEmotionRecord(
+          1, // TODO: 使用真实的 userId
+          emotionRecord.emotion,
+          emotionRecord.intensity,
+          content,
+          replyContent
+        );
+
+        // 9. 增加关系进度
+        await addRelationshipPoints(
+          1, // TODO: 使用真实的 userId
+          1, // 每条消息增加 1 点
+          `User message: ${content.substring(0, 50)}`
+        );
       } catch (err) {
         console.error('Failed to send message:', err);
         setError('Failed to send message');
       }
     },
-    []
+    [messages, novaName]
   );
 
   // 添加记忆
