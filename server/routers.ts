@@ -14,6 +14,27 @@ import {
 } from "../drizzle/schema";
 import { eq, desc, and } from "drizzle-orm";
 
+// 辅助函数：确保用户存在
+async function ensureUserExists(db: any, userId: number) {
+  const existing = await db
+    .select()
+    .from(userProfiles)
+    .where(eq(userProfiles.userId, userId))
+    .limit(1);
+
+  if (existing.length === 0) {
+    await db.insert(userProfiles).values({
+      userId,
+      novaName: "Nova",
+      userName: `User ${userId}`,
+      userAge: null,
+      userInterests: JSON.stringify([]),
+      importantEvents: JSON.stringify([]),
+      relationshipLevel: "stranger",
+    });
+  }
+}
+
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -135,6 +156,9 @@ export const appRouter = router({
           const db = await getDb();
           if (!db) throw new Error("Database not available");
 
+          // 确保用户存在
+          await ensureUserExists(db, input.userId);
+
           const result = await db.insert(memories).values({
             userId: input.userId,
             content: input.content,
@@ -205,6 +229,9 @@ export const appRouter = router({
         try {
           const db = await getDb();
           if (!db) throw new Error("Database not available");
+
+          // 确保用户存在
+          await ensureUserExists(db, input.userId);
 
           await db.insert(emotionHistory).values({
             userId: input.userId,
@@ -322,6 +349,9 @@ export const appRouter = router({
         try {
           const db = await getDb();
           if (!db) throw new Error("Database not available");
+
+          // 确保用户存在
+          await ensureUserExists(db, input.userId);
 
           await db.insert(personalityEvolution).values({
             userId: input.userId,
@@ -455,6 +485,9 @@ export const appRouter = router({
         try {
           const db = await getDb();
           if (!db) throw new Error("Database not available");
+
+          // 确保用户存在
+          await ensureUserExists(db, input.userId);
 
           // 获取当前关系状态
           const existing = await db

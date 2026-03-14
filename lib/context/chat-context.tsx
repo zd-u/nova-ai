@@ -4,6 +4,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/hooks/use-auth';
 import {
   ChatMessage,
   PersonalityTraits,
@@ -55,6 +56,7 @@ interface ChatContextType {
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export function ChatProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [personality, setPersonality] = useState<PersonalityTraits>(INITIAL_PERSONALITY);
   const [personalityHistory, setPersonalityHistory] = useState<PersonalityHistory[]>([]);
@@ -198,11 +200,18 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         );
 
         // 9. 增加关系进度
-        await addRelationshipPoints(
-          1, // TODO: 使用真实的 userId
-          1, // 每条消息增加 1 点
-          `User message: ${content.substring(0, 50)}`
-        );
+        if (user?.id) {
+          try {
+            await addRelationshipPoints(
+              user.id,
+              1, // 每条消息增加 1 点
+              `User message: ${content.substring(0, 50)}`
+            );
+          } catch (err) {
+            console.error('Failed to add relationship points:', err);
+            // 继续执行，不中断聊天流程
+          }
+        }
       } catch (err) {
         console.error('Failed to send message:', err);
         setError('Failed to send message');
