@@ -3,6 +3,8 @@
  * 管理用户与 Nova 之间的关系进度和内容限制
  */
 
+import { getApiBaseUrl } from '@/constants/oauth';
+
 /**
  * 关系等级
  */
@@ -197,7 +199,8 @@ export async function getRelationshipProgress(userId: number): Promise<{
   nextLevelPoints: number;
 }> {
   try {
-    const response = await fetch("/api/trpc/relationship.get", {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/trpc/relationship.get`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -246,7 +249,8 @@ export async function addRelationshipPoints(
   reason: string
 ): Promise<RelationshipLevel> {
   try {
-    const response = await fetch("/api/trpc/relationship.addPoints", {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/trpc/relationship.addPoints`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -3,6 +3,8 @@
  * 识别用户的情绪状态，调整 Nova 的回复语气和人格参数
  */
 
+import { getApiBaseUrl } from '@/constants/oauth';
+
 /**
  * 情绪类型
  */
@@ -196,7 +198,8 @@ export async function saveEmotionRecord(
   novaResponse: string
 ): Promise<void> {
   try {
-    const response = await fetch("/api/trpc/emotion.save", {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/trpc/emotion.save`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -228,7 +231,8 @@ export async function getEmotionTrend(
   days: number = 7
 ): Promise<EmotionRecord[]> {
   try {
-    const response = await fetch("/api/trpc/emotion.trend", {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/trpc/emotion.trend`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

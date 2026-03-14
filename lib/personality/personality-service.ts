@@ -3,6 +3,8 @@
  * 根据用户行为动态调整 Nova 的人格参数
  */
 
+import { getApiBaseUrl } from '@/constants/oauth';
+
 /**
  * 人格参数
  */
@@ -229,7 +231,8 @@ export async function savePersonalityRecord(
   triggerMessage: string
 ): Promise<void> {
   try {
-    const response = await fetch("/api/trpc/personality.save", {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/trpc/personality.save`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -257,7 +260,8 @@ export async function savePersonalityRecord(
  */
 export async function getPersonalityTraits(userId: number): Promise<PersonalityTraits> {
   try {
-    const response = await fetch("/api/trpc/personality.get", {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/trpc/personality.get`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

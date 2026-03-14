@@ -4,6 +4,7 @@
  */
 
 import { Memory, InsertMemory } from "@/drizzle/schema";
+import { getApiBaseUrl } from '@/constants/oauth';
 
 /**
  * 记忆类别
@@ -41,8 +42,8 @@ export async function saveMemory(
   importance: number = 5
 ): Promise<MemoryItem> {
   try {
-    // 调用后端 API 保存记忆
-    const response = await fetch("/api/trpc/memory.save", {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/trpc/memory.save`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -79,7 +80,8 @@ export async function searchMemories(
   limit: number = 5
 ): Promise<MemoryItem[]> {
   try {
-    const response = await fetch("/api/trpc/memory.search", {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/trpc/memory.search`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
