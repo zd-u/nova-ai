@@ -112,3 +112,8 @@
 - [x] 修复 ensureUserExists 函数中的字段名称错误
 - [x] 修复 ensureUserExists 函数中的用户存在性检查（检查 users 表）
 - [x] 修复聊天上下文中的 userId 传递（使用 user?.id 而不是硬编码）
+
+## 改进记录 - Prompt 生成优化
+- [x] 改进了 buildPersonaPrompt 函数，使其根据人格向量生成更具体的语言特征指导
+- [x] 人格向量现在真正影响 LLM 的回复风格
+- [x] 创建了 Prompt Builder 测试（全部通过）
