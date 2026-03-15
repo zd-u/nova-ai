@@ -179,12 +179,16 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             content: msg.content,
           }));
 
-        const replyContent = await generateNovaReply(
-          content,
-          newPersonality,
+        const replyContent = await generateNovaReply({
+          userMessage: content,
+          personality: newPersonality,
           novaName,
-          conversationHistory
-        );
+          conversationHistory,
+          relationshipLevel: 'stranger', // TODO: 从数据库获取真实的关系等级
+          emotion: emotionRecord.emotion || undefined,
+          memories: (relatedMemories as any) || [],
+          userName: user?.name || undefined,
+        });
 
         const novaReply: ChatMessage = {
           id: `msg_${Date.now()}_nova`,
