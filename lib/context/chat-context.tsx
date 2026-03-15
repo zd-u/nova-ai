@@ -131,35 +131,41 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         await updatePersonality(newPersonality);
 
         // 4. 保存情绪记录
-        await saveEmotionRecord(
-          1, // TODO: 使用真实的 userId
-          emotionRecord.emotion,
-          emotionRecord.intensity,
-          content,
-          '' // 暂时为空，稍后填充
-        );
+        if (user?.id) {
+          await saveEmotionRecord(
+            user.id,
+            emotionRecord.emotion,
+            emotionRecord.intensity,
+            content,
+            '' // 暂时为空，稍后填充
+          );
+        }
 
         // 5. 保存人格演化记录
-        await savePersonalityRecord(
-          1, // TODO: 使用真实的 userId
-          newPersonality,
-          userBehavior,
-          content
-        );
+        if (user?.id) {
+          await savePersonalityRecord(
+            user.id,
+            newPersonality,
+            userBehavior,
+            content
+          );
+        }
 
         // 6. 提取并保存记忆
         const extractedMemories = extractMemoriesFromMessage(content);
         for (const memory of extractedMemories) {
-          await saveMemory(
-            1, // TODO: 使用真实的 userId
-            memory.content,
-            memory.category,
-            memory.importance
-          );
+          if (user?.id) {
+            await saveMemory(
+              user.id,
+              memory.content,
+              memory.category,
+              memory.importance
+            );
+          }
         }
 
         // 7. 搜索相关记忆
-        const relatedMemories = await searchMemories(1, content, 3); // TODO: 使用真实的 userId
+        const relatedMemories = user?.id ? await searchMemories(user.id, content, 3) : [];
 
         // 获取更新的历史
         const updatedHistory = await getPersonalityHistory();
@@ -191,13 +197,15 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         setMessages((prev) => [...prev, novaReply]);
 
         // 8. 更新情绪记录（添加 Nova 的回复）
-        await saveEmotionRecord(
-          1, // TODO: 使用真实的 userId
-          emotionRecord.emotion,
-          emotionRecord.intensity,
-          content,
-          replyContent
-        );
+        if (user?.id) {
+          await saveEmotionRecord(
+            user.id,
+            emotionRecord.emotion,
+            emotionRecord.intensity,
+            content,
+            replyContent
+          );
+        }
 
         // 9. 增加关系进度
         if (user?.id) {

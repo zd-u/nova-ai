@@ -11,25 +11,41 @@ import {
   personalityEvolution,
   relationshipProgress,
   userProfiles,
+  users,
 } from "../drizzle/schema";
 import { eq, desc, and } from "drizzle-orm";
 
 // 辅助函数：确保用户存在
 async function ensureUserExists(db: any, userId: number) {
-  const existing = await db
+  // 首先检查用户是否存在于 users 表
+  const userExists = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (userExists.length === 0) {
+    // 如果用户不存在，不进行任何操作
+    // 因为我们不能在没有有效 openId 的情况下创建用户
+    return;
+  }
+
+  // 检查用户档案是否存在
+  const profileExists = await db
     .select()
     .from(userProfiles)
     .where(eq(userProfiles.userId, userId))
     .limit(1);
 
-  if (existing.length === 0) {
+  if (profileExists.length === 0) {
+    // 如果档案不存在，创建档案
     await db.insert(userProfiles).values({
       userId,
       novaName: "Nova",
       userName: `User ${userId}`,
       userAge: null,
-      userInterests: JSON.stringify([]),
-      importantEvents: JSON.stringify([]),
+      userInterests: "", // 空字符串或 null
+      importantEvents: "", // 空字符串或 null
       relationshipLevel: "stranger",
     });
   }

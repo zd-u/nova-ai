@@ -110,3 +110,5 @@
 - [x] 修复 userId 的获取（使用真实的用户 ID 而不是硬编码）
 - [x] 修复数据库外键约束错误（自动创建用户档案）
 - [x] 修复 ensureUserExists 函数中的字段名称错误
+- [x] 修复 ensureUserExists 函数中的用户存在性检查（检查 users 表）
+- [x] 修复聊天上下文中的 userId 传递（使用 user?.id 而不是硬编码）
