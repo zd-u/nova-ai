@@ -21,7 +21,7 @@ export async function generateNovaReply(
     const baseUrl = getApiBaseUrl();
     console.log('API Base URL:', baseUrl);
     
-    const apiUrl = `${baseUrl}/api/trpc/ai.generateReply?batch=1`;
+    const apiUrl = `${baseUrl}/api/trpc/ai.generateReply`;
     console.log('Full API URL:', apiUrl);
     
     // 调用 tRPC 路由
