@@ -171,6 +171,15 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         const updatedHistory = await getPersonalityHistory();
         setPersonalityHistory(updatedHistory);
 
+        // 获取当前关系等级
+        let relationshipLevel = "stranger";
+        if (user?.id) {
+          const relationshipProgress = await getRelationshipProgress(user.id);
+          if (relationshipProgress) {
+            relationshipLevel = relationshipProgress.level;
+          }
+        }
+
         // 生成 Nova 的回复
         const conversationHistory = messages
           .slice(-10) // 只取最近的 10 条消息作为上下文
@@ -183,7 +192,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           content,
           newPersonality,
           novaName,
-          conversationHistory
+          conversationHistory,
+          relationshipLevel
         );
 
         const novaReply: ChatMessage = {

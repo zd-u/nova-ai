@@ -13,14 +13,15 @@ export async function generateNovaReply(
   userMessage: string,
   personality: PersonalityTraits,
   novaName: string,
-  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>
+  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>,
+  relationshipLevel?: string
 ): Promise<string> {
   try {
     // 获取 API 基础 URL
     const baseUrl = getApiBaseUrl();
     console.log('API Base URL:', baseUrl);
     
-    const apiUrl = `${baseUrl}/api/trpc/ai.generateReply`;
+    const apiUrl = `${baseUrl}/api/trpc/ai.generateReply?batch=1`;
     console.log('Full API URL:', apiUrl);
     
     // 调用 tRPC 路由
@@ -35,6 +36,7 @@ export async function generateNovaReply(
           personality,
           novaName,
           conversationHistory,
+          relationshipLevel: relationshipLevel || 'stranger',
         },
       }),
     });

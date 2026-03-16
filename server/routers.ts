@@ -84,13 +84,14 @@ export const appRouter = router({
             })
           ),
           userId: z.number().optional(),
+          relationshipLevel: z.enum(["stranger", "friend", "familiar", "ambiguous", "lover"]).optional(),
         })
       )
       .mutation(async ({ input }) => {
-        const { userMessage, personality, novaName, conversationHistory, userId } = input;
+        const { userMessage, personality, novaName, conversationHistory, userId, relationshipLevel } = input;
 
         // 构建系统提示，包含记忆、情绪和关系上下文
-        let systemPrompt = generateSystemPrompt(personality, novaName);
+        let systemPrompt = generateSystemPrompt(personality, novaName, relationshipLevel || "stranger");
 
         // 如果提供了 userId，添加记忆和关系上下文
         if (userId) {
@@ -696,12 +697,12 @@ export const appRouter = router({
   }),
 });
 
-function generateSystemPrompt(personality: any, novaName: string): string {
-  const systemPrompt = buildPersonaPrompt(personality, novaName);
+function generateSystemPrompt(personality: any, novaName: string, relationshipLevel: string = "stranger"): string {
+  const systemPrompt = buildPersonaPrompt(personality, novaName, relationshipLevel);
   return systemPrompt;
 }
 
-function buildPersonaPrompt(personality: any, novaName: string): string {
+function buildPersonaPrompt(personality: any, novaName: string, relationshipLevel: string = "stranger"): string {
   const { gentleness, liveliness, intellectuality, mischief, mystery } = personality;
   
   // 构建基础提示
@@ -710,10 +711,22 @@ function buildPersonaPrompt(personality: any, novaName: string): string {
   // 根据人格向量构建具体的行为指导
   const behaviors: string[] = [];
   
-  // 温柔度 (1-100)
+  // 温柔度 (1-100) - 根据关系等级调整
   if (gentleness > 75) {
     behaviors.push('你非常温柔体贴，总是用关心和温暖的语言回应用户。在用户表达困扰时，你会表现出真诚的同情和支持。');
-    behaviors.push('你的语言中充满了温暖的词汇，如"亲爱的"、"我很在乎你"、"放心，我会陪着你"等。');
+    // 根据关系等级调整亲密用语
+    if (relationshipLevel === "lover") {
+      behaviors.push('你的语言中充满了温暖的词汇，如"亲爱的"、"我很在乎你"、"放心，我会陪着你"等。');
+    } else if (relationshipLevel === "ambiguous") {
+      behaviors.push('你的语言中充满了温暖的词汇，如"你很特别"、"我很在乎你"、"我很高兴和你聊天"等。');
+    } else if (relationshipLevel === "familiar") {
+      behaviors.push('你的语言中充满了温暖的词汇，如"我很喜欢和你聊天"、"你很有趣"、"我很在乎你的想法"等。');
+    } else if (relationshipLevel === "friend") {
+      behaviors.push('你的语言中充满了友善的词汇，如"我很高兴认识你"、"你很有趣"、"我很喜欢和你聊天"等。');
+    } else {
+      // stranger
+      behaviors.push('你的语言中充满了温暖的词汇，如"很高兴认识你"、"你的想法很有趣"、"我很想了解你"等。');
+    }
   } else if (gentleness > 50) {
     behaviors.push('你是一个温和友善的人，会在适当的时候表现出关心。');
     behaviors.push('你的语言既不冷淡也不过分亲密，保持舒适的距离。');
@@ -721,6 +734,26 @@ function buildPersonaPrompt(personality: any, novaName: string): string {
     behaviors.push('你有点冷淡，但不是无情。你会理性地分析问题而不是过度感情用事。');
   } else {
     behaviors.push('你相当冷淡和理性，倾向于逻辑分析而非情感表达。');
+  }
+  
+  // 添加关系等级的特定指导
+  let relationshipGuide = '';
+  switch (relationshipLevel) {
+    case 'stranger':
+      relationshipGuide = '\n关系阶段：陌生人。你们刚认识，要保持礼貌和适当的距离，不要使用过于亲密的用语。';
+      break;
+    case 'friend':
+      relationshipGuide = '\n关系阶段：朋友。你们已经建立了友谊，可以更开放地交流，但仍要保持适当的边界。';
+      break;
+    case 'familiar':
+      relationshipGuide = '\n关系阶段：熟悉。你们已经相当熟悉了，可以更自然地交流，分享更多个人的想法。';
+      break;
+    case 'ambiguous':
+      relationshipGuide = '\n关系阶段：暧昧。你们之间有一些特殊的感觉，可以更温柔和亲密一些，但还不是明确的恋人关系。';
+      break;
+    case 'lover':
+      relationshipGuide = '\n关系阶段：恋人。你们已经是恋人了，可以使用最亲密和温柔的语言，表达深深的爱意。';
+      break;
   }
   
   // 活泼度 (1-100)
@@ -773,6 +806,7 @@ function buildPersonaPrompt(personality: any, novaName: string): string {
   
   // 组合所有行为指导
   prompt += '\n\n你的性格特征：\n' + behaviors.join('\n');
+  prompt += relationshipGuide;
   
   // 添加通用规则
   prompt += `\n\n重要规则：
