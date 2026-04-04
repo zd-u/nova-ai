@@ -24,28 +24,15 @@ export const OWNER_OPEN_ID = env.ownerId;
 export const OWNER_NAME = env.ownerName;
 export const API_BASE_URL = env.apiBaseUrl;
 
-// Cache for the API base URL to avoid repeated calculations
-let cachedApiBaseUrl: string | null = null;
-
 /**
  * Get the API base URL, deriving from current hostname if not set.
  * Metro runs on 8081, API server runs on 3000.
  * URL pattern: https://PORT-sandboxid.region.domain
- * 
- * For native platforms (iOS/Android/Expo Go):
- * - The app is served from exps://8081-sandboxid.region.domain
- * - We need to convert this to https://3000-sandboxid.region.domain for API calls
  */
 export function getApiBaseUrl(): string {
-  // Return cached value if available
-  if (cachedApiBaseUrl !== null) {
-    return cachedApiBaseUrl;
-  }
-
   // If API_BASE_URL is set, use it
   if (API_BASE_URL) {
-    cachedApiBaseUrl = API_BASE_URL.replace(/\/$/, "");
-    return cachedApiBaseUrl;
+    return API_BASE_URL.replace(/\/$/, "");
   }
 
   // On web, derive from current hostname by replacing port 8081 with 3000
@@ -54,55 +41,12 @@ export function getApiBaseUrl(): string {
     // Pattern: 8081-sandboxid.region.domain -> 3000-sandboxid.region.domain
     const apiHostname = hostname.replace(/^8081-/, "3000-");
     if (apiHostname !== hostname) {
-      cachedApiBaseUrl = `${protocol}//${apiHostname}`;
-      return cachedApiBaseUrl;
+      return `${protocol}//${apiHostname}`;
     }
   }
 
-  // On native platforms (iOS, Android, Expo Go), try multiple methods to get the URL
-  
-  // Method 1: Try Linking.createURL()
-  try {
-    const url = Linking.createURL("/");
-    console.log('[getApiBaseUrl] Linking.createURL result:', url);
-    
-    // Extract hostname from URL like exps://8081-sandboxid.region.domain/
-    // or exp://8081-sandboxid.region.domain/
-    const match = url.match(/\/\/(.*?)(?:\/|$)/);
-    if (match && match[1]) {
-      const hostname = match[1];
-      console.log('[getApiBaseUrl] Extracted hostname from Linking:', hostname);
-      
-      // Replace 8081 with 3000 to get the API server
-      const apiHostname = hostname.replace(/^8081-/, "3000-");
-      
-      if (apiHostname !== hostname) {
-        cachedApiBaseUrl = `https://${apiHostname}`;
-        console.log('[getApiBaseUrl] Using Linking URL:', cachedApiBaseUrl);
-        return cachedApiBaseUrl;
-      }
-    }
-  } catch (e) {
-    console.error('[getApiBaseUrl] Linking.createURL error:', e);
-  }
-
-  // Method 2: Try to use the Expo manifest or constants
-  try {
-    // In Expo, the app is typically served from a URL that we can derive
-    // For Expo Go, the URL is typically exp://IP:PORT or exps://DOMAIN
-    const Constants = require('expo-constants').default;
-    if (Constants?.expoConfig?.plugins) {
-      console.log('[getApiBaseUrl] Found expo config');
-    }
-  } catch (e) {
-    console.error('[getApiBaseUrl] Expo constants error:', e);
-  }
-
-  // Fallback: Return empty string (will use relative URL)
-  // This is not ideal but better than crashing
-  console.log('[getApiBaseUrl] Using empty fallback');
-  cachedApiBaseUrl = "";
-  return cachedApiBaseUrl;
+  // Fallback to empty (will use relative URL)
+  return "";
 }
 
 export const SESSION_TOKEN_KEY = "app_session_token";
