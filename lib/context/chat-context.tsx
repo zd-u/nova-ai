@@ -174,14 +174,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         // 获取当前关系等级
         let relationshipLevel = "stranger";
         if (user?.id) {
-          try {
-            const relationshipProgress = await getRelationshipProgress(user.id);
-            if (relationshipProgress) {
-              relationshipLevel = relationshipProgress.level;
-            }
-          } catch (err) {
-            console.error('Failed to get relationship progress:', err);
-            relationshipLevel = "stranger";
+          const relationshipProgress = await getRelationshipProgress(user.id);
+          if (relationshipProgress) {
+            relationshipLevel = relationshipProgress.level;
           }
         }
 

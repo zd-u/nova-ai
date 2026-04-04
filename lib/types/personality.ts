@@ -85,15 +85,14 @@ export interface AppState {
 }
 
 /**
- * 初始性格（从零开始）
- * 新用户的性格从零开始，通过与 Nova 的互动逐步演化
+ * 初始性格（中立状态）
  */
 export const INITIAL_PERSONALITY: PersonalityTraits = {
-  gentleness: 0,
-  liveliness: 0,
-  intellectuality: 0,
-  mischief: 0,
-  mystery: 0,
+  gentleness: 70,
+  liveliness: 60,
+  intellectuality: 65,
+  mischief: 50,
+  mystery: 40,
 };
 
 /**

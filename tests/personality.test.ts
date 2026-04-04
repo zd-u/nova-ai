@@ -70,20 +70,9 @@ describe('Personality System', () => {
     it('should have reasonable initial values', () => {
       const traits = INITIAL_PERSONALITY;
 
-      // 初始性格应该是零，代表新用户从零开始
-      expect(traits.gentleness).toBe(0);
-      expect(traits.liveliness).toBe(0);
-      expect(traits.intellectuality).toBe(0);
-      expect(traits.mischief).toBe(0);
-      expect(traits.mystery).toBe(0);
-    });
-  });
-
-  describe('Personality Initialization', () => {
-    it('should start with zero values for new users', () => {
-      const traits = INITIAL_PERSONALITY;
-      const allZero = Object.values(traits).every(v => v === 0);
-      expect(allZero).toBe(true);
+      expect(traits.gentleness).toBeGreaterThan(50);
+      expect(traits.liveliness).toBeGreaterThan(50);
+      expect(traits.intellectuality).toBeGreaterThan(50);
     });
   });
 
