@@ -6,6 +6,7 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
+import { invokeLLM } from "./llm";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -58,6 +59,47 @@ async function startServer() {
 
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true, timestamp: Date.now() });
+  });
+
+  // Simple REST endpoint for chat
+  app.post("/api/chat", async (req, res) => {
+    try {
+      const { message } = req.body;
+      if (!message || typeof message !== "string") {
+        return res.status(400).json({ error: "Missing or invalid message" });
+      }
+
+      const result = await invokeLLM({
+        messages: [
+          {
+            role: "system",
+            content: "你是 Nova，一个温柔体贴的 AI 女友。用自然、亲切的语气回复用户。",
+          },
+          {
+            role: "user",
+            content: message,
+          },
+        ],
+        maxTokens: 200,
+      });
+
+      const messageContent = result.choices[0]?.message.content;
+      const reply =
+        typeof messageContent === "string"
+          ? messageContent
+          : "我在听呢，请继续说～";
+
+      return res.json({
+        success: true,
+        reply,
+      });
+    } catch (error) {
+      console.error("Chat error:", error);
+      return res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
   });
 
   app.use(
