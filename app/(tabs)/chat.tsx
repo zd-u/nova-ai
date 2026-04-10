@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, KeyboardAvoidingView, Platform } from 'react-native';
 import { ScreenContainer } from '@/components/screen-container';
 import { MessageList } from '@/components/message-list';
 import { MessageInput } from '@/components/message-input';
@@ -10,6 +10,10 @@ export default function ChatScreen() {
 
   return (
     <ScreenContainer className="flex-1 bg-background" edges={['top', 'left', 'right', 'bottom']}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        className="flex-1"
+      >
       <View className="flex-1">
         {/* Header with clear history button */}
         <View className="flex-row justify-between items-center px-4 py-3 border-b border-border">
@@ -30,6 +34,7 @@ export default function ChatScreen() {
         )}
         <MessageInput onSend={sendMessage} loading={loading} />
       </View>
+      </KeyboardAvoidingView>
     </ScreenContainer>
   );
 }
