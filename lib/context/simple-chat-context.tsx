@@ -15,6 +15,7 @@ export interface ChatContextType {
   loading: boolean;
   error: string | null;
   sendMessage: (content: string) => Promise<void>;
+  clearHistory: () => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -52,6 +53,11 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const clearHistory = useCallback(() => {
+    setMessages([]);
+    setError(null);
+  }, []);
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -131,6 +137,7 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
     loading,
     error,
     sendMessage,
+    clearHistory,
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
