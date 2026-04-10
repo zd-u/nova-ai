@@ -39,27 +39,50 @@ export default function HomeScreen() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) {
-      return "早上好呀~ 😊";
-    } else if (hour < 18) {
-      return "下午好，亲爱的~ 💕";
-    } else {
-      return "晚上好呢~ 🌙";
+    // 5:00 - 10:59: 早上
+    if (hour >= 5 && hour < 11) {
+      return "早上好呀～ ☀️";
+    }
+    // 11:00 - 13:59: 中午
+    else if (hour >= 11 && hour < 14) {
+      return "中午好呀～ 🍱";
+    }
+    // 14:00 - 17:59: 下午
+    else if (hour >= 14 && hour < 18) {
+      return "下午好呢～ ☕";
+    }
+    // 18:00 - 23:59: 晚上
+    else if (hour >= 18 && hour < 24) {
+      return "晚上好呢～ 🌙";
+    }
+    // 0:00 - 4:59: 深夜
+    else {
+      return "这么晚还没睡呀～ ✨";
     }
   };
 
   const getBackgroundGradient = () => {
     const hour = new Date().getHours();
     // Return gradient colors based on time of day
-    if (hour < 12) {
-      // Morning: soft yellow to light blue
+    // 5:00 - 10:59: 早上 - 暖黄到浅蓝
+    if (hour >= 5 && hour < 11) {
       return "from-amber-50 to-blue-50";
-    } else if (hour < 18) {
-      // Afternoon: light blue to light pink
-      return "from-blue-50 to-pink-50";
-    } else {
-      // Evening: light purple to dark blue
+    }
+    // 11:00 - 13:59: 中午 - 浅蓝到浅绿
+    else if (hour >= 11 && hour < 14) {
+      return "from-blue-50 to-green-50";
+    }
+    // 14:00 - 17:59: 下午 - 浅绿到浅粉
+    else if (hour >= 14 && hour < 18) {
+      return "from-green-50 to-pink-50";
+    }
+    // 18:00 - 23:59: 晚上 - 浅紫到深蓝
+    else if (hour >= 18 && hour < 24) {
       return "from-purple-50 to-indigo-50";
+    }
+    // 0:00 - 4:59: 深夜 - 深蓝到深紫
+    else {
+      return "from-indigo-100 to-purple-100";
     }
   };
 
