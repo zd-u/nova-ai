@@ -71,8 +71,15 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
 
       try {
         console.log('Sending message to API...');
+        // Convert messages to history format for API
+        const history = messages.map((msg) => ({
+          sender: msg.sender,
+          text: msg.content,
+        }));
+        
         const response = await chatClient.post('/api/chat', {
           message: content,
+          history,
         });
 
         console.log('API response:', response.data);

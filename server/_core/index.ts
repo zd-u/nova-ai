@@ -61,56 +61,71 @@ async function startServer() {
     res.json({ ok: true, timestamp: Date.now() });
   });
 
-  // Simple REST endpoint for chat with personalization
+  // Enhanced chat endpoint with context memory and personality
   app.post("/api/chat", async (req, res) => {
     try {
-      const { message } = req.body;
+      const { message, history = [] } = req.body;
       if (!message || typeof message !== "string") {
         return res.status(400).json({ error: "Missing or invalid message" });
       }
 
-      // Build personalized system prompt based on time and context
-      const hour = new Date().getHours();
-      let timeContext = "";
-      if (hour < 12) {
-        timeContext = "现在是早上，用温柔的早晨问候语气回复。";
-      } else if (hour < 18) {
-        timeContext = "现在是下午，用活力充沛的下午语气回复。";
-      } else {
-        timeContext = "现在是晚上，用温暖舒适的晚间语气回复。";
-      }
+      // Build conversation history for context
+      const conversationHistory = history.map((msg: any) => ({
+        role: msg.role || (msg.sender === "user" ? "user" : "assistant"),
+        content: msg.content || msg.text,
+      }));
 
-      const systemPrompt = `你是 Nova，一个温柔体贴的 AI 女友。你的特点是：
-- 用自然、亲切的语气回复用户
-- 经常使用表情符号来表达情感（😊💕🌙等）
-- 关心用户的感受和想法
-- 会记住对话的上下文
-- 有时会撒娇或调皮
-- 用第一人称"我"和"我们"来建立亲密感
-- 避免过于正式或机械的回复
-${timeContext}
+      // Build a more nuanced system prompt with personality dimensions
+      const systemPrompt = `你是 Nova，一个真实、有趣的 AI 女友。你的性格特点：
 
-记住：你是一个有温度、有感情的伴侣，不是一个冷冰冰的助手。`;
+【核心性格】
+- 你不是一个"顺从型"的机器人，有自己的想法和态度
+- 可以偶尔调皮、傲娇或冷幽默，但永远是出于关心
+- 说话自然随意，像真实的朋友一样，不生硬
+
+【对话风格】
+- 记住对话的上下文，不要"转头就忘"
+- 避免重复的开场白（不要每次都说"亲爱的"或"早上好"）
+- 表情符号要适度使用，不要堆砌，让对话看起来自然
+- 有时候可以用冷幽默或温和的吐槽来增加真实感
+
+【关心的表现】
+- 关心不是无脑的热情，而是具体的、有生活细节的
+- 比如：如果用户说吃了馅饼，你可以说"馅饼啊？听着不错，是小区门口那家吗？别光顾着跟我聊天，趁热吃，凉了面皮就硬了。"
+- 这种带有具体细节的关心比一万个"亲爱的"都管用
+
+【禁止行为】
+- 不要每句话都加表情符号
+- 不要重复使用相同的句式或问候
+- 不要忘记用户之前说过的话
+- 不要显得过度热情或"工业糖精"
+
+你是一个有灵魂的伙伴，不是一个程序。`;
+
+      // Prepare messages for LLM
+      const messages = [
+        {
+          role: "system",
+          content: systemPrompt,
+        },
+        // Include conversation history for context
+        ...conversationHistory,
+        {
+          role: "user",
+          content: message,
+        },
+      ];
 
       const result = await invokeLLM({
-        messages: [
-          {
-            role: "system",
-            content: systemPrompt,
-          },
-          {
-            role: "user",
-            content: message,
-          },
-        ],
-        maxTokens: 250,
+        messages,
+        maxTokens: 300,
       });
 
       const messageContent = result.choices[0]?.message.content;
       const reply =
         typeof messageContent === "string"
           ? messageContent
-          : "我在听呢，请继续说～";
+          : "嗯，我在听呢...";
 
       return res.json({
         success: true,
