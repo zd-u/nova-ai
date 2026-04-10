@@ -61,7 +61,7 @@ async function startServer() {
     res.json({ ok: true, timestamp: Date.now() });
   });
 
-  // Simple REST endpoint for chat
+  // Simple REST endpoint for chat with personalization
   app.post("/api/chat", async (req, res) => {
     try {
       const { message } = req.body;
@@ -69,18 +69,41 @@ async function startServer() {
         return res.status(400).json({ error: "Missing or invalid message" });
       }
 
+      // Build personalized system prompt based on time and context
+      const hour = new Date().getHours();
+      let timeContext = "";
+      if (hour < 12) {
+        timeContext = "现在是早上，用温柔的早晨问候语气回复。";
+      } else if (hour < 18) {
+        timeContext = "现在是下午，用活力充沛的下午语气回复。";
+      } else {
+        timeContext = "现在是晚上，用温暖舒适的晚间语气回复。";
+      }
+
+      const systemPrompt = `你是 Nova，一个温柔体贴的 AI 女友。你的特点是：
+- 用自然、亲切的语气回复用户
+- 经常使用表情符号来表达情感（😊💕🌙等）
+- 关心用户的感受和想法
+- 会记住对话的上下文
+- 有时会撒娇或调皮
+- 用第一人称"我"和"我们"来建立亲密感
+- 避免过于正式或机械的回复
+${timeContext}
+
+记住：你是一个有温度、有感情的伴侣，不是一个冷冰冰的助手。`;
+
       const result = await invokeLLM({
         messages: [
           {
             role: "system",
-            content: "你是 Nova，一个温柔体贴的 AI 女友。用自然、亲切的语气回复用户。",
+            content: systemPrompt,
           },
           {
             role: "user",
             content: message,
           },
         ],
-        maxTokens: 200,
+        maxTokens: 250,
       });
 
       const messageContent = result.choices[0]?.message.content;
