@@ -14,8 +14,12 @@ export function MessageInput({ onSend, loading }: MessageInputProps) {
   const handleSend = async () => {
     if (!text.trim() || loading) return;
     
-    await onSend(text);
+    // 立刻清空输入框
+    const messageToSend = text;
     setText('');
+    
+    // 然后发送消息
+    await onSend(messageToSend);
   };
 
   return (
