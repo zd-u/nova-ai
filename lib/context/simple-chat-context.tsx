@@ -1,7 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import axios from 'axios';
+import Constants from 'expo-constants';
 
 export interface ChatMessage {
   id: string;
@@ -22,10 +23,12 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 // Create axios instance with proper configuration
 const createChatClient = () => {
-  // Detect if we're in a web environment and need to proxy to the API server
   let baseURL = '';
   
-  if (typeof window !== 'undefined') {
+  // Try to get API base URL from environment
+  if (process.env.EXPO_PUBLIC_API_BASE_URL) {
+    baseURL = process.env.EXPO_PUBLIC_API_BASE_URL;
+  } else if (typeof window !== 'undefined') {
     // In web environment, construct the API base URL
     const { protocol, hostname } = window.location;
     // Replace 8081 (Metro) with 3000 (API server)
@@ -35,6 +38,20 @@ const createChatClient = () => {
       baseURL = `${protocol}//${apiHostname}`;
     }
     // Otherwise, use relative URL (will be proxied by Metro)
+  } else {
+    // In native environment, try to get from Constants or use default
+    try {
+      const expoConfig = Constants.expoConfig;
+      if (expoConfig?.extra?.apiBaseUrl) {
+        baseURL = expoConfig.extra.apiBaseUrl;
+      } else {
+        // Default to localhost for development
+        baseURL = 'http://localhost:3000';
+      }
+    } catch (e) {
+      // Fallback to localhost
+      baseURL = 'http://localhost:3000';
+    }
   }
 
   return axios.create({
@@ -47,12 +64,13 @@ const createChatClient = () => {
   });
 };
 
-const chatClient = createChatClient();
-
 export function SimpleChatProvider({ children }: { children: React.ReactNode }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Create chatClient inside Provider to ensure environment is ready
+  const chatClient = useMemo(() => createChatClient(), []);
 
   const clearHistory = useCallback(() => {
     setMessages([]);
@@ -77,59 +95,69 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
 
       try {
         console.log('Sending message to API...');
-        // Convert messages to history format for API
-        const history = messages.map((msg) => ({
-          sender: msg.sender,
-          text: msg.content,
-        }));
-        
-        const response = await chatClient.post('/api/chat', {
-          message: content,
-          history,
+        // Use current messages state for history
+        setMessages((prev) => {
+          const history = prev.map((msg) => ({
+            sender: msg.sender,
+            text: msg.content,
+          }));
+          
+          // Send API request
+          chatClient.post('/api/chat', {
+            message: content,
+            history,
+          })
+            .then((response) => {
+              console.log('API response:', response.data);
+              const data = response.data;
+
+              if (data.success && data.reply) {
+                const novaMessage: ChatMessage = {
+                  id: (Date.now() + 1).toString(),
+                  content: data.reply,
+                  sender: 'nova',
+                  timestamp: Date.now(),
+                };
+                setMessages((prevState) => [...prevState, novaMessage]);
+              } else {
+                setError(data.error || 'Failed to generate reply');
+              }
+              setLoading(false);
+            })
+            .catch((err) => {
+              let errorMessage = 'Unknown error';
+              
+              if (axios.isAxiosError(err)) {
+                if (err.response) {
+                  // Server responded with error status
+                  errorMessage = `Server error: ${err.response.status}`;
+                  if (err.response.data?.error) {
+                    errorMessage = err.response.data.error;
+                  }
+                } else if (err.request) {
+                  // Request was made but no response
+                  errorMessage = 'No response from server';
+                } else {
+                  // Error in request setup
+                  errorMessage = err.message;
+                }
+              } else if (err instanceof Error) {
+                errorMessage = err.message;
+              }
+              
+              setError(errorMessage);
+              console.error('Send message error:', err);
+              setLoading(false);
+            });
+          
+          return prev;
         });
-
-        console.log('API response:', response.data);
-        const data = response.data;
-
-        if (data.success && data.reply) {
-          const novaMessage: ChatMessage = {
-            id: (Date.now() + 1).toString(),
-            content: data.reply,
-            sender: 'nova',
-            timestamp: Date.now(),
-          };
-          setMessages((prev) => [...prev, novaMessage]);
-        } else {
-          setError(data.error || 'Failed to generate reply');
-        }
       } catch (err) {
-        let errorMessage = 'Unknown error';
-        
-        if (axios.isAxiosError(err)) {
-          if (err.response) {
-            // Server responded with error status
-            errorMessage = `Server error: ${err.response.status}`;
-            if (err.response.data?.error) {
-              errorMessage = err.response.data.error;
-            }
-          } else if (err.request) {
-            // Request was made but no response
-            errorMessage = 'No response from server';
-          } else {
-            // Error in request setup
-            errorMessage = err.message;
-          }
-        } else if (err instanceof Error) {
-          errorMessage = err.message;
-        }
-        
-        setError(errorMessage);
-        console.error('Send message error:', err);
-      } finally {
         setLoading(false);
+        console.error('Send message setup error:', err);
       }
     },
-    []
+    [chatClient]
   );
 
   const value: ChatContextType = {

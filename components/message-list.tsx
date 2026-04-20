@@ -1,9 +1,9 @@
 import React from 'react';
 import { FlatList, Text, View } from 'react-native';
-import { ChatMessage } from '@/lib/types/chat';
+import { ChatMessage } from '@/lib/context/simple-chat-context';
 
 type MessageListProps = {
-  messages: ChatMessage[];
+  messages: ChatMessage[] | undefined;
 };
 
 export function MessageList({ messages }: MessageListProps) {

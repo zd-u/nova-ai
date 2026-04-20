@@ -61,28 +61,28 @@ export default function HomeScreen() {
     }
   };
 
-  const getBackgroundGradient = () => {
+  const getBackgroundColor = () => {
     const hour = new Date().getHours();
-    // Return gradient colors based on time of day
-    // 5:00 - 10:59: 早上 - 暖黄到浅蓝
+    // Return background color based on time of day
+    // 5:00 - 10:59: 早上 - 暖黄
     if (hour >= 5 && hour < 11) {
-      return "from-amber-50 to-blue-50";
+      return "bg-amber-50";
     }
-    // 11:00 - 13:59: 中午 - 浅蓝到浅绿
+    // 11:00 - 13:59: 中午 - 浅蓝
     else if (hour >= 11 && hour < 14) {
-      return "from-blue-50 to-green-50";
+      return "bg-blue-50";
     }
-    // 14:00 - 17:59: 下午 - 浅绿到浅粉
+    // 14:00 - 17:59: 下午 - 浅绿
     else if (hour >= 14 && hour < 18) {
-      return "from-green-50 to-pink-50";
+      return "bg-green-50";
     }
-    // 18:00 - 23:59: 晚上 - 浅紫到深蓝
+    // 18:00 - 23:59: 晚上 - 浅紫
     else if (hour >= 18 && hour < 24) {
-      return "from-purple-50 to-indigo-50";
+      return "bg-purple-50";
     }
-    // 0:00 - 4:59: 深夜 - 深蓝到深紫
+    // 0:00 - 4:59: 深夜 - 深蓝
     else {
-      return "from-indigo-100 to-purple-100";
+      return "bg-indigo-100";
     }
   };
 
@@ -91,7 +91,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <ScreenContainer className={`p-6 bg-gradient-to-b ${getBackgroundGradient()}`}>
+    <ScreenContainer className={`p-6 ${getBackgroundColor()}`}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <View className="flex-1 justify-center gap-8">
           {/* Nova Profile Section */}
