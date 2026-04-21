@@ -25,9 +25,10 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 const createChatClient = () => {
   let baseURL = '';
   
-  // Try to get API base URL from environment
+  // Try to get API base URL from environment (highest priority)
   if (process.env.EXPO_PUBLIC_API_BASE_URL) {
     baseURL = process.env.EXPO_PUBLIC_API_BASE_URL;
+    console.log('Using API URL from EXPO_PUBLIC_API_BASE_URL:', baseURL);
   } else if (typeof window !== 'undefined') {
     // In web environment, construct the API base URL
     const { protocol, hostname } = window.location;
@@ -36,6 +37,7 @@ const createChatClient = () => {
     if (apiHostname !== hostname) {
       // We detected a port replacement, use absolute URL
       baseURL = `${protocol}//${apiHostname}`;
+      console.log('Using API URL from web hostname replacement:', baseURL);
     }
     // Otherwise, use relative URL (will be proxied by Metro)
   } else {
@@ -44,13 +46,16 @@ const createChatClient = () => {
       const expoConfig = Constants.expoConfig;
       if (expoConfig?.extra?.apiBaseUrl) {
         baseURL = expoConfig.extra.apiBaseUrl;
+        console.log('Using API URL from expoConfig:', baseURL);
       } else {
         // Default to localhost for development
         baseURL = 'http://localhost:3000';
+        console.log('Using default localhost API URL');
       }
     } catch (e) {
       // Fallback to localhost
       baseURL = 'http://localhost:3000';
+      console.log('Using fallback localhost API URL');
     }
   }
 
