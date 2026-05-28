@@ -25,6 +25,13 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 // Storage key for persisting chat messages
 const CHAT_STORAGE_KEY = 'nova_chat_messages';
+const LLM_CONFIG_STORAGE_KEY = 'llmConfig';
+
+export type LLMConfig = {
+  apiUrl?: string;
+  apiKey?: string;
+  model?: string;
+};
 
 // Create axios instance with proper configuration
 const createChatClient = () => {
@@ -154,6 +161,19 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
 
       try {
         console.log('Sending message to API...');
+        
+        // Load LLM config from AsyncStorage
+        let llmConfig: LLMConfig | undefined;
+        try {
+          const savedConfig = await AsyncStorage.getItem(LLM_CONFIG_STORAGE_KEY);
+          if (savedConfig) {
+            llmConfig = JSON.parse(savedConfig);
+            console.log('Using custom LLM config:', { model: llmConfig?.model });
+          }
+        } catch (e) {
+          console.log('No custom LLM config found, using default');
+        }
+        
         // Use current messages state for history
         setMessages((prev) => {
           const history = prev.map((msg) => ({
@@ -161,10 +181,11 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
             text: msg.content,
           }));
           
-          // Send API request
+          // Send API request with optional LLM config
           chatClient.post('/api/chat', {
             message: content,
             history,
+            ...(llmConfig && { llmConfig }),
           })
             .then((response) => {
               console.log('API response:', response.data);

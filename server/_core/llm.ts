@@ -201,14 +201,47 @@ const normalizeToolChoice = (
   return toolChoice;
 };
 
-const resolveApiUrl = () =>
-  ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0
-    ? `${ENV.forgeApiUrl.replace(/\/$/, "")}/v1/chat/completions`
-    : "https://forge.manus.im/v1/chat/completions";
+// LLM 配置接口 - 支持动态传入或环境变量
+export type LLMConfig = {
+  apiUrl?: string;      // 例如: https://api.deepseek.com/v1/chat/completions
+  apiKey?: string;      // 例如: sk-xxxxxx
+  model?: string;       // 例如: deepseek-chat, gpt-4o, claude-3-opus
+};
 
-const assertApiKey = () => {
-  if (!ENV.forgeApiKey) {
-    throw new Error("OPENAI_API_KEY is not configured");
+const resolveApiUrl = (customUrl?: string) => {
+  // 优先级：自定义 URL > 环境变量 > 默认 Manus Forge
+  if (customUrl && customUrl.trim().length > 0) {
+    return customUrl.replace(/\/$/, "");
+  }
+  
+  if (ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0) {
+    return `${ENV.forgeApiUrl.replace(/\/$/, "")}/v1/chat/completions`;
+  }
+  
+  return "https://forge.manus.im/v1/chat/completions";
+};
+
+const resolveApiKey = (customKey?: string) => {
+  // 优先级：自定义 Key > 环境变量
+  if (customKey && customKey.trim().length > 0) {
+    return customKey;
+  }
+  
+  return ENV.forgeApiKey || "";
+};
+
+const resolveModel = (customModel?: string) => {
+  // 优先级：自定义模型 > 环境变量 > 默认 Gemini
+  if (customModel && customModel.trim().length > 0) {
+    return customModel;
+  }
+  
+  return ENV.llmModel || "gemini-2.5-flash";
+};
+
+const assertApiKey = (apiKey: string) => {
+  if (!apiKey) {
+    throw new Error("API_KEY is not configured. Please provide an API key via request or environment variables.");
   }
 };
 
@@ -252,8 +285,15 @@ const normalizeResponseFormat = ({
   };
 };
 
-export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
-  assertApiKey();
+export async function invokeLLM(
+  params: InvokeParams,
+  llmConfig?: LLMConfig,
+): Promise<InvokeResult> {
+  const apiKey = resolveApiKey(llmConfig?.apiKey);
+  const apiUrl = resolveApiUrl(llmConfig?.apiUrl);
+  const model = resolveModel(llmConfig?.model);
+  
+  assertApiKey(apiKey);
 
   const {
     messages,
@@ -267,7 +307,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   } = params;
 
   const payload: Record<string, unknown> = {
-    model: "gemini-2.5-flash",
+    model,
     messages: messages.map(normalizeMessage),
   };
 
@@ -280,10 +320,16 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.tool_choice = normalizedToolChoice;
   }
 
-  payload.max_tokens = 32768;
-  payload.thinking = {
-    budget_tokens: 128,
-  };
+  // 根据模型类型调整参数
+  // Gemini 模型支持 thinking，其他模型可能不支持
+  if (model.includes("gemini")) {
+    payload.max_tokens = 32768;
+    payload.thinking = {
+      budget_tokens: 128,
+    };
+  } else {
+    payload.max_tokens = 2048;
+  }
 
   const normalizedResponseFormat = normalizeResponseFormat({
     responseFormat,
@@ -296,18 +342,26 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.response_format = normalizedResponseFormat;
   }
 
-  const response = await fetch(resolveApiUrl(), {
+  const response = await fetch(apiUrl, {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      authorization: `Bearer ${ENV.forgeApiKey}`,
+      authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`LLM invoke failed: ${response.status} ${response.statusText} – ${errorText}`);
+    console.error(`LLM API Error [${model}]:`, {
+      status: response.status,
+      statusText: response.statusText,
+      url: apiUrl,
+      error: errorText,
+    });
+    throw new Error(
+      `LLM invoke failed: ${response.status} ${response.statusText} – ${errorText}`,
+    );
   }
 
   return (await response.json()) as InvokeResult;

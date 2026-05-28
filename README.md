@@ -1,17 +1,19 @@
-# Nova - 你的专属女友
+# Nova - 你的专属女友 AI
 
 ![Nova Logo](assets/images/icon.png)
 
-**Nova** 是一个基于 Google Gemini 2.5 Flash 的 AI 情感助手应用，提供温柔、有趣的陪伴体验。通过自然的对话和智能的理解，Nova 能够成为你的专属女友，随时陪伴你分享生活。
+**Nova** 是一个完全开源的 AI 情感助手应用，支持全球主流大模型生态。用户可自备任何 OpenAI 兼容格式的 API Key（DeepSeek、ChatGPT、Claude、Kimi 等），一键接入自己的大模型，获得温柔、有趣的陪伴体验。
 
-## ✨ 特性
+## ✨ 核心特性
 
-- **智能对话**：基于 Google Gemini 2.5 Flash 的先进 LLM，提供自然、流畅的对话体验
-- **多语言支持**：自动识别用户语言（中文、英文等），无缝切换
-- **本地记忆**：使用 AsyncStorage 实现聊天记录本地持久化，关闭应用后历史消息完整保留
-- **沉浸式体验**：去掉 AI 标签，让用户专注于与 Nova 的互动
-- **跨平台**：支持 iOS、Android 和 Web 平台
-- **开源**：完全开源，欢迎贡献和改进
+- **🌍 全模型生态支持**：完美兼容 DeepSeek、OpenAI、Claude、Kimi、智谱清言、通义千问、Gemini 等任何提供 OpenAI 兼容接口的平台
+- **🔧 用户自备 API**：用户可在应用内自定义 API 地址和 Key，无需依赖第三方服务
+- **💬 智能对话**：先进的 LLM 驱动，提供自然、流畅的对话体验
+- **🌐 多语言支持**：自动识别用户语言（中文、英文等），无缝切换，保持相同的傲娇和幽默语调
+- **💾 本地记忆**：使用 AsyncStorage 实现聊天记录本地持久化，关闭应用后历史消息完整保留
+- **🎭 沉浸式体验**：去掉 AI 标签，让用户专注于与 Nova 的互动
+- **📱 跨平台**：支持 iOS、Android 和 Web 平台
+- **🔓 完全开源**：MIT 开源协议，欢迎贡献和改进
 
 ## 🚀 快速开始
 
@@ -38,14 +40,12 @@ pnpm install
 
 #### 3. 配置环境变量
 
-创建 `.env.local` 文件：
+创建 `.env.local` 文件（可选，如果不配置则使用默认的 Manus Forge API）：
 
 ```bash
-# LLM API 配置
+# 可选：默认 LLM API 配置（如果不配置，用户可在应用内动态设置）
 BUILT_IN_FORGE_API_KEY=your_api_key_here
-
-# 可选：自定义 LLM API 端点
-BUILT_IN_FORGE_API_URL=https://forge.manus.im/v1/chat/completions
+LLM_MODEL=gemini-2.5-flash
 
 # 前端 API 配置
 EXPO_PUBLIC_API_BASE_URL=http://localhost:3000
@@ -66,6 +66,39 @@ pnpm dev
 - **Web**：在浏览器中打开 http://localhost:8081
 - **iOS**：运行 `pnpm ios`（需要 Xcode）
 - **Android**：运行 `pnpm android`（需要 Android Studio）
+
+---
+
+## 🔑 大模型配置指南
+
+Nova 支持任何提供 OpenAI 兼容接口的大模型平台。用户可在应用内的 **Settings** 选项卡中自定义模型配置。
+
+### 支持的模型平台对照表
+
+| 平台 | 模型 ID | API 地址 | 获取 API Key |
+|------|--------|---------|------------|
+| **DeepSeek** | `deepseek-chat` | `https://api.deepseek.com/v1` | [https://platform.deepseek.com](https://platform.deepseek.com) |
+| **OpenAI** | `gpt-4o` / `gpt-4-turbo` | `https://api.openai.com/v1` | [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys) |
+| **Anthropic Claude** | `claude-3-opus-20240229` | `https://api.anthropic.com/v1` | [https://console.anthropic.com](https://console.anthropic.com) |
+| **Moonshot (Kimi)** | `moonshot-v1-8k` | `https://api.moonshot.cn/v1` | [https://platform.moonshot.cn](https://platform.moonshot.cn) |
+| **智谱清言** | `glm-4` | `https://open.bigmodel.cn/api/paas/v4` | [https://bigmodel.cn](https://bigmodel.cn) |
+| **阿里通义千问** | `qwen-plus` | `https://dashscope.aliyuncs.com/api/v1` | [https://dashscope.aliyun.com](https://dashscope.aliyun.com) |
+| **Google Gemini** | `gemini-2.5-flash` | `https://forge.manus.im/v1` | Manus 内置 |
+
+### 配置步骤
+
+1. **打开应用** → 点击底部 **Settings** 选项卡
+2. **选择快速预设** → 点击你想使用的模型平台（如 DeepSeek、OpenAI 等）
+3. **填入 API Key** → 从对应平台复制你的 API Key 粘贴到输入框
+4. **点击保存** → 配置自动保存到本地
+5. **重新打开聊天** → Chat 页面会自动使用新配置
+
+### 自定义配置
+
+如果你想使用其他 OpenAI 兼容的 API 服务，可以在 Settings 中手动填入：
+- **API 地址**：例如 `https://api.custom-provider.com/v1`
+- **API Key**：你的 API Key
+- **模型名称**：对应平台的模型 ID
 
 ---
 
@@ -95,7 +128,7 @@ eas login
 
 ### 步骤 3：配置 eas.json
 
-项目根目录已包含 `eas.json`。检查其内容：
+项目根目录已包含 `eas.json`。检查其内容确保后端 API 地址正确：
 
 ```json
 {
@@ -104,6 +137,16 @@ eas login
   },
   "build": {
     "preview": {
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview2": {
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview3": {
       "android": {
         "buildType": "apk"
       }
@@ -117,306 +160,157 @@ eas login
 }
 ```
 
-### 步骤 4：更新 API URL
+### 步骤 4：配置环境变量
 
-编辑 `app.config.ts`，确保后端 URL 指向你部署的服务器：
+在 `eas.json` 中添加环境变量，指向你的云端后端 API：
 
-```typescript
-const env = {
-  appName: "Nova",
-  appSlug: "nova-ai-girlfriend",
-  logoUrl: "https://your-s3-bucket/nova-logo.webp",
-  scheme: "manus20240115103045",
-  iosBundleId: "space.manus.nova.ai.girlfriend.t20240115103045",
-  androidPackage: "space.manus.nova.ai.girlfriend.t20240115103045",
-};
+```json
+{
+  "build": {
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://your-backend-url.com"
+      }
+    }
+  }
+}
 ```
 
-### 步骤 5：设置环境变量
-
-创建 `.env.production` 文件：
-
-```bash
-# 生产环境后端 URL（替换为你的部署地址）
-EXPO_PUBLIC_API_BASE_URL=https://nova-ai-backend.onrender.com
-```
-
-### 步骤 6：构建 APK
-
-#### 选项 A：快速构建（推荐）
-
-```bash
-eas build --platform android --profile preview
-```
-
-这会生成一个预览版 APK，构建时间约 10-15 分钟。
-
-#### 选项 B：生产构建
+### 步骤 5：构建 APK
 
 ```bash
 eas build --platform android --profile production
 ```
 
-生产构建包含优化和签名，但需要更多时间。
+按照提示选择构建选项。构建过程通常需要 5-15 分钟。
 
-### 步骤 7：下载 APK
+### 步骤 6：下载 APK
 
-构建完成后，你会看到：
+构建完成后，你会收到一个下载链接。点击链接下载 APK 文件。
 
-```
-✅ Build complete!
-📱 APK URL: https://expo.dev/artifacts/...
-```
+### 步骤 7：安装到手机
 
-点击链接下载 APK 文件到你的电脑。
+**方式 1：直接安装**
+- 将 APK 文件传输到手机
+- 打开文件管理器，找到 APK 文件
+- 点击安装，按照提示完成安装
 
-### 步骤 8：安装到手机
-
-#### 方式 1：直接安装（需要启用未知来源）
-
-1. 将 APK 文件传到手机
-2. 打开文件管理器，找到 APK 文件
-3. 点击安装
-4. 按照提示完成安装
-
-#### 方式 2：使用 adb 安装
-
+**方式 2：使用 adb 安装**
 ```bash
-adb install path/to/app.apk
+adb install path/to/nova.apk
 ```
 
-#### 方式 3：扫描二维码
+### 步骤 8：首次运行
 
-构建完成后，Expo 会提供一个二维码。用 Android 手机扫描，直接下载并安装。
-
-### 步骤 9：验证安装
-
-打开 Nova 应用，进入 Chat 标签，发送一条消息。如果能收到 Nova 的回复，说明安装成功！
+- 打开应用
+- 进入 **Settings** 选项卡
+- 配置你的大模型 API（如 DeepSeek、OpenAI 等）
+- 点击 **Chat** 开始对话
 
 ---
 
-## 🌐 部署后端
+## 🔧 后端部署
 
-Nova 需要一个后端服务器来处理 AI 对话。详见 `server/DEPLOYMENT.md`。
+Nova 的后端是一个独立的 Node.js Express 应用。详细的部署指南见 `server/DEPLOYMENT.md`。
 
-### 快速部署到 Render（推荐）
+### 快速部署到 Render
 
 ```bash
-# 1. 登录 render.com
-# 2. 创建新的 Web Service
-# 3. 连接你的 GitHub 仓库
-# 4. 配置：
-#    - Build Command: cd server && pnpm install && pnpm build
-#    - Start Command: node dist/index.js
-# 5. 添加环境变量：BUILT_IN_FORGE_API_KEY
-# 6. 点击 Deploy
+cd server
+# 按照 DEPLOYMENT.md 中的步骤进行部署
 ```
 
-部署完成后，你会获得一个 URL，如 `https://nova-ai-backend.onrender.com`。
-
-### 更新前端配置
-
-将后端 URL 更新到前端：
+### 快速部署到 Vercel
 
 ```bash
-# .env.local
-EXPO_PUBLIC_API_BASE_URL=https://nova-ai-backend.onrender.com
+vercel deploy
 ```
 
 ---
 
-## 📁 项目结构
+## 📂 项目结构
 
 ```
 nova-ai-girlfriend/
-├── app/                          # Expo Router 应用
+├── app/                      # React Native 应用代码
 │   ├── (tabs)/
-│   │   ├── index.tsx            # 主页（Nova 介绍）
-│   │   └── chat.tsx             # 聊天页面
-│   ├── _layout.tsx              # 根布局
-│   └── oauth/                   # OAuth 回调
-├── components/                   # React 组件
-│   ├── screen-container.tsx     # SafeArea 容器
-│   └── ui/                      # UI 组件
-├── lib/                          # 工具库
+│   │   ├── index.tsx        # 主页
+│   │   ├── chat.tsx         # 聊天页面
+│   │   ├── settings.tsx     # 大模型设置页面
+│   │   └── _layout.tsx      # Tab 导航
+│   └── _layout.tsx          # 应用根布局
+├── components/              # React Native 组件
+├── lib/                     # 工具函数和上下文
 │   ├── context/
-│   │   └── simple-chat-context.tsx  # 聊天状态管理（AsyncStorage 持久化）
-│   ├── trpc.ts                  # tRPC 客户端
-│   └── utils.ts                 # 工具函数
-├── server/                       # Express 后端
+│   │   └── simple-chat-context.tsx  # 聊天状态管理
+│   └── utils.ts
+├── server/                  # Express 后端
 │   ├── _core/
-│   │   ├── index.ts             # 主服务器文件
-│   │   ├── llm.ts               # LLM 调用接口
-│   │   └── env.ts               # 环境变量
-│   ├── DEPLOYMENT.md            # 部署指南
-│   └── package.json             # 后端依赖
-├── app.config.ts                # Expo 配置
-├── eas.json                     # EAS Build 配置
-├── tailwind.config.js           # Tailwind CSS 配置
-└── README.md                    # 本文件
+│   │   ├── index.ts        # 服务器入口
+│   │   ├── llm.ts          # LLM 通用接口
+│   │   └── env.ts          # 环境变量
+│   └── DEPLOYMENT.md       # 部署指南
+├── README.md               # 本文件
+├── app.config.ts           # Expo 配置
+└── package.json            # 项目依赖
 ```
 
 ---
 
-## 🔧 配置说明
+## 🛠️ 开发指南
 
-### 环境变量
+### 添加新的聊天功能
 
-| 变量名 | 说明 | 必需 | 示例 |
-|--------|------|------|------|
-| `BUILT_IN_FORGE_API_KEY` | Google Gemini API Key | ✅ | `sk-...` |
-| `EXPO_PUBLIC_API_BASE_URL` | 后端 API 地址 | ✅ | `https://nova-ai-backend.onrender.com` |
-| `BUILT_IN_FORGE_API_URL` | 自定义 LLM 端点 | ❌ | `https://forge.manus.im/v1/chat/completions` |
+编辑 `lib/context/simple-chat-context.tsx` 中的 System Prompt，修改 Nova 的性格和行为。
 
-### 获取 API Key
+### 自定义 UI 主题
 
-1. 登录 [Manus 平台](https://manus.im)
-2. 进入 **Settings** → **API Keys**
-3. 创建新的 API Key
-4. 复制 `BUILT_IN_FORGE_API_KEY` 值
+编辑 `theme.config.js` 修改颜色和样式。
+
+### 添加新的 Tab 页面
+
+1. 在 `app/(tabs)/` 中创建新文件（例如 `profile.tsx`）
+2. 在 `app/(tabs)/_layout.tsx` 中添加新的 `Tabs.Screen`
 
 ---
 
-## 🎨 自定义
+## 🤝 贡献指南
 
-### 修改 Nova 的人格
+欢迎提交 Issue 和 Pull Request！
 
-编辑 `server/_core/index.ts` 中的 System Prompt（第 79-112 行）：
+### 报告 Bug
 
-```typescript
-const systemPrompt = `你是 Nova，一个真实、有趣的专属女友...`;
-```
+请在 GitHub Issues 中详细描述问题，包括：
+- 使用的大模型和 API 地址
+- 复现步骤
+- 预期行为和实际行为
 
-### 修改应用主题
+### 提交功能建议
 
-编辑 `tailwind.config.js` 和 `theme.config.js` 中的颜色配置。
-
-### 修改应用名称和图标
-
-编辑 `app.config.ts`：
-
-```typescript
-const env = {
-  appName: "Nova",  // 改为你的应用名称
-  appSlug: "nova-ai-girlfriend",
-  logoUrl: "https://your-logo-url",  // 改为你的 Logo URL
-};
-```
-
----
-
-## 🧪 测试
-
-### 运行单元测试
-
-```bash
-pnpm test
-```
-
-### 手动测试聊天功能
-
-1. 启动开发服务器：`pnpm dev`
-2. 打开 http://localhost:8081
-3. 进入 Chat 标签
-4. 发送消息，验证 Nova 的回复
-
-### 测试多语言
-
-发送不同语言的消息，验证 Nova 自动切换语言：
-
-- 中文：「你好」
-- 英文：「Hello」
-- 日文：「こんにちは」
-
----
-
-## 📚 技术栈
-
-- **前端**：React Native、Expo Router、NativeWind (Tailwind CSS)
-- **后端**：Express.js、Node.js
-- **LLM**：Google Gemini 2.5 Flash（通过 Manus Forge API）
-- **存储**：AsyncStorage（本地）、MySQL（可选）
-- **状态管理**：React Context
-- **样式**：Tailwind CSS、NativeWind
-
----
-
-## 🤝 贡献
-
-欢迎贡献！请遵循以下步骤：
-
-1. Fork 本仓库
-2. 创建特性分支：`git checkout -b feature/your-feature`
-3. 提交更改：`git commit -m 'Add your feature'`
-4. 推送到分支：`git push origin feature/your-feature`
-5. 提交 Pull Request
+在 GitHub Discussions 中分享你的想法。
 
 ---
 
 ## 📄 许可证
 
-本项目采用 **MIT License**。详见 `LICENSE` 文件。
-
----
-
-## ⚠️ 免责声明
-
-Nova 是一个 AI 情感助手，**不是真实的人类**。使用本应用时请注意：
-
-- Nova 的回复由 AI 生成，可能存在错误或不准确
-- 不要将 Nova 的建议作为专业医疗、法律或心理咨询
-- 如果你正经历心理健康危机，请寻求专业帮助
-
----
-
-## 🆘 常见问题
-
-### Q: 如何更改 Nova 的语言或人格？
-
-**A**: 编辑 `server/_core/index.ts` 中的 System Prompt。
-
-### Q: 如何添加数据库支持？
-
-**A**: 参考 `server/README.md` 中的数据库配置部分。
-
-### Q: 如何部署到 iOS？
-
-**A**: 使用 EAS Build：
-```bash
-eas build --platform ios
-```
-
-详见 [Expo 文档](https://docs.expo.dev/build/setup/)。
-
-### Q: 聊天记录会被上传到服务器吗？
-
-**A**: 不会。聊天记录存储在本地设备的 AsyncStorage 中，只有当前消息会发送到后端进行 AI 处理。
-
-### Q: 如何自定义应用图标？
-
-**A**: 将新的 PNG 图片放在 `assets/images/icon.png`，然后重新构建。
-
----
-
-## 📞 支持
-
-- 📖 [Expo 文档](https://docs.expo.dev)
-- 🔗 [Manus 文档](https://docs.manus.im)
-- 💬 [GitHub Issues](https://github.com/yourusername/nova-ai-girlfriend/issues)
+本项目采用 MIT 开源协议。详见 `LICENSE` 文件。
 
 ---
 
 ## 🙏 致谢
 
-感谢以下开源项目和服务：
-
-- [Expo](https://expo.dev) - React Native 开发框架
-- [Google Gemini](https://gemini.google.com) - AI 模型
-- [Manus](https://manus.im) - AI 平台和 API 代理
-- [Tailwind CSS](https://tailwindcss.com) - 样式框架
+- 感谢 [Expo](https://expo.dev) 提供的优秀移动应用框架
+- 感谢 [Google Gemini](https://ai.google.dev) 提供的 LLM 能力
+- 感谢所有贡献者和用户的支持
 
 ---
 
-**Made with ❤️ by the Manus team**
+## 📞 联系方式
 
-最后更新：2026 年 5 月 28 日
+- GitHub Issues：报告 Bug 和功能建议
+- GitHub Discussions：讨论和问题
+- 邮箱：your-email@example.com
+
+---
+
+**祝你使用愉快！** 🎉
