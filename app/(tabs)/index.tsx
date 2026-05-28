@@ -108,7 +108,7 @@ export default function HomeScreen() {
             {/* Nova Name */}
             <View className="items-center gap-2">
               <Text className="text-3xl font-bold text-foreground">Nova</Text>
-              <Text className="text-sm text-muted">你的 AI 女友</Text>
+              <Text className="text-sm text-muted">你的专属女友</Text>
             </View>
           </View>
 

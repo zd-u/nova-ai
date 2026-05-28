@@ -1,8 +1,9 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import axios from 'axios';
 import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface ChatMessage {
   id: string;
@@ -17,9 +18,13 @@ export interface ChatContextType {
   error: string | null;
   sendMessage: (content: string) => Promise<void>;
   clearHistory: () => void;
+  isInitialized: boolean;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
+
+// Storage key for persisting chat messages
+const CHAT_STORAGE_KEY = 'nova_chat_messages';
 
 // Create axios instance with proper configuration
 const createChatClient = () => {
@@ -69,17 +74,66 @@ const createChatClient = () => {
   });
 };
 
+// Helper function to load messages from AsyncStorage
+const loadMessagesFromStorage = async (): Promise<ChatMessage[]> => {
+  try {
+    const stored = await AsyncStorage.getItem(CHAT_STORAGE_KEY);
+    if (stored) {
+      const messages = JSON.parse(stored);
+      console.log('Loaded', messages.length, 'messages from AsyncStorage');
+      return messages;
+    }
+  } catch (error) {
+    console.error('Error loading messages from AsyncStorage:', error);
+  }
+  return [];
+};
+
+// Helper function to save messages to AsyncStorage
+const saveMessagesToStorage = async (messages: ChatMessage[]): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+    console.log('Saved', messages.length, 'messages to AsyncStorage');
+  } catch (error) {
+    console.error('Error saving messages to AsyncStorage:', error);
+  }
+};
+
 export function SimpleChatProvider({ children }: { children: React.ReactNode }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Create chatClient inside Provider to ensure environment is ready
   const chatClient = useMemo(() => createChatClient(), []);
 
-  const clearHistory = useCallback(() => {
+  // Load messages from storage on mount
+  useEffect(() => {
+    const initializeMessages = async () => {
+      const storedMessages = await loadMessagesFromStorage();
+      setMessages(storedMessages);
+      setIsInitialized(true);
+    };
+    initializeMessages();
+  }, []);
+
+  // Save messages to storage whenever they change
+  useEffect(() => {
+    if (isInitialized) {
+      saveMessagesToStorage(messages);
+    }
+  }, [messages, isInitialized]);
+
+  const clearHistory = useCallback(async () => {
     setMessages([]);
     setError(null);
+    try {
+      await AsyncStorage.removeItem(CHAT_STORAGE_KEY);
+      console.log('Cleared chat history');
+    } catch (error) {
+      console.error('Error clearing chat history:', error);
+    }
   }, []);
 
   const sendMessage = useCallback(
@@ -171,6 +225,7 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
     error,
     sendMessage,
     clearHistory,
+    isInitialized,
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

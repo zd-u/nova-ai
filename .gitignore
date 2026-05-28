@@ -60,3 +60,4 @@ Thumbs.db
 *.tgz
 *.tar.gz
 .cache/
+.project-config.json
