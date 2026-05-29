@@ -32,15 +32,15 @@ export type GenerateImageResponse = {
 };
 
 export async function generateImage(options: GenerateImageOptions): Promise<GenerateImageResponse> {
-  if (!ENV.forgeApiUrl) {
+  if (!ENV.llmApiUrl) {
     throw new Error("BUILT_IN_FORGE_API_URL is not configured");
   }
-  if (!ENV.forgeApiKey) {
+  if (!ENV.llmApiKey) {
     throw new Error("BUILT_IN_FORGE_API_KEY is not configured");
   }
 
   // Build the full URL by appending the service path to the base URL
-  const baseUrl = ENV.forgeApiUrl.endsWith("/") ? ENV.forgeApiUrl : `${ENV.forgeApiUrl}/`;
+  const baseUrl = ENV.llmApiUrl.endsWith("/") ? ENV.llmApiUrl : `${ENV.llmApiUrl}/`;
   const fullUrl = new URL("images.v1.ImageService/GenerateImage", baseUrl).toString();
 
   const response = await fetch(fullUrl, {
@@ -49,7 +49,7 @@ export async function generateImage(options: GenerateImageOptions): Promise<Gene
       accept: "application/json",
       "content-type": "application/json",
       "connect-protocol-version": "1",
-      authorization: `Bearer ${ENV.forgeApiKey}`,
+      authorization: `Bearer ${ENV.llmApiKey}`,
     },
     body: JSON.stringify({
       prompt: options.prompt,

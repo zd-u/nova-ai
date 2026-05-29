@@ -6,8 +6,8 @@ import { ENV } from "./_core/env";
 type StorageConfig = { baseUrl: string; apiKey: string };
 
 function getStorageConfig(): StorageConfig {
-  const baseUrl = ENV.forgeApiUrl;
-  const apiKey = ENV.forgeApiKey;
+  const baseUrl = ENV.llmApiUrl;
+  const apiKey = ENV.llmApiKey;
 
   if (!baseUrl || !apiKey) {
     throw new Error(

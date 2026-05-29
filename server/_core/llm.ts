@@ -209,16 +209,17 @@ export type LLMConfig = {
 };
 
 const resolveApiUrl = (customUrl?: string) => {
-  // 优先级：自定义 URL > 环境变量 > 默认 Manus Forge
+  // 优先级：自定义 URL > 环境变量
   if (customUrl && customUrl.trim().length > 0) {
     return customUrl.replace(/\/$/, "");
   }
   
-  if (ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0) {
-    return `${ENV.forgeApiUrl.replace(/\/$/, "")}/v1/chat/completions`;
+  if (ENV.llmApiUrl && ENV.llmApiUrl.trim().length > 0) {
+    return `${ENV.llmApiUrl.replace(/\/$/, "")}/v1/chat/completions`;
   }
   
-  return "https://forge.manus.im/v1/chat/completions";
+  // No default URL - user must provide one
+  return "";
 };
 
 const resolveApiKey = (customKey?: string) => {
@@ -227,16 +228,16 @@ const resolveApiKey = (customKey?: string) => {
     return customKey;
   }
   
-  return ENV.forgeApiKey || "";
+  return ENV.llmApiKey || "";
 };
 
 const resolveModel = (customModel?: string) => {
-  // 优先级：自定义模型 > 环境变量 > 默认 Gemini
+  // 优先级：自定义模型 > 环境变量
   if (customModel && customModel.trim().length > 0) {
     return customModel;
   }
   
-  return ENV.llmModel || "gemini-2.5-flash";
+  return ENV.llmModel || "";
 };
 
 const assertApiKey = (apiKey: string) => {
