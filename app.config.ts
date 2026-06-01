@@ -2,21 +2,19 @@
 import "./scripts/load-env.js";
 import type { ExpoConfig } from "expo/config";
 
-// Bundle ID format: space.manus.<project_name_dots>.<timestamp>
-// e.g., "my-app" created at 2024-01-15 10:30:45 -> "space.manus.my.app.t20240115103045"
-const bundleId = "space.manus.ai.girlfriend.v2.t20251230231724";
-// Extract timestamp from bundle ID and prefix with "manus" for deep link scheme
-// e.g., "space.manus.my.app.t20240115103045" -> "manus20240115103045"
+// Bundle ID format: com.<project_name_dots>.<timestamp>
+// e.g., "nova-ai" created at 2026-06-01 -> "com.novaai.t20260601"
+const bundleId = "com.novaai.t20260601";
+// Extract timestamp from bundle ID for deep link scheme
 const timestamp = bundleId.split(".").pop()?.replace(/^t/, "") ?? "";
-const schemeFromBundleId = `manus${timestamp}`;
+const schemeFromBundleId = `novaai${timestamp}`;
 
 const env = {
   // App branding - update these values directly (do not use env vars)
-  appName: "AI女友 - 动态性格与记忆",
-  appSlug: "ai-girlfriend-v2",
-  // S3 URL of the app logo - set this to the URL returned by generate_image when creating custom logo
-  // Leave empty to use the default icon from assets/images/icon.png
-  logoUrl: "",
+  appName: "Nova AI",
+  appSlug: "nova-ai",
+  // S3 URL of the app logo
+  logoUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663270740782/j7Zxq6EgSFQWC67fUeRBQp/icon-ka5JFvRTJNqifi45yL8HMs.webp",
   scheme: schemeFromBundleId,
   iosBundleId: bundleId,
   androidPackage: bundleId,

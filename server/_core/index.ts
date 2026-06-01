@@ -126,10 +126,10 @@ async function startServer() {
       ];
 
       // 支持动态 LLM 配置：从请求体中读取用户自定义的配置
+      // 不硬编码 maxTokens，让 llm.ts 的默认值生效
       const result = await invokeLLM(
         {
           messages,
-          maxTokens: 300,
         },
         llmConfig as LLMConfig | undefined,
       );

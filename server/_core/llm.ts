@@ -322,14 +322,19 @@ export async function invokeLLM(
   }
 
   // 根据模型类型调整参数
-  // Gemini 模型支持 thinking，其他模型可能不支持
+  // 优先级：请求体中的 maxTokens > 模型默认值
+  const maxTokens = params.maxTokens || params.max_tokens;
+  
   if (model.includes("gemini")) {
-    payload.max_tokens = 32768;
+    payload.max_tokens = maxTokens || 32768;
     payload.thinking = {
       budget_tokens: 128,
     };
+  } else if (model.includes("claude")) {
+    // Claude 使用 OpenAI 兼容代理时，也需要 max_tokens
+    payload.max_tokens = maxTokens || 2048;
   } else {
-    payload.max_tokens = 2048;
+    payload.max_tokens = maxTokens || 2048;
   }
 
   const normalizedResponseFormat = normalizeResponseFormat({

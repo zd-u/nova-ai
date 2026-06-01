@@ -6,9 +6,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import { Platform } from "react-native";
+import { ToastProvider } from "react-native-toast-notifications";
 import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { SimpleChatProvider } from "@/lib/context/simple-chat-context";
+import { I18nProvider } from "@/lib/context/i18n-context";
 import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
@@ -81,9 +83,11 @@ export default function RootLayout() {
 
   const content = (
     <SimpleChatProvider>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <trpc.Provider client={trpcClient} queryClient={queryClient}>
-          <QueryClientProvider client={queryClient}>
+      <I18nProvider>
+        <ToastProvider>
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <trpc.Provider client={trpcClient} queryClient={queryClient}>
+              <QueryClientProvider client={queryClient}>
           {/* Default to hiding native headers so raw route segments don't appear (e.g. "(tabs)", "products/[id]"). */}
           {/* If a screen needs the native header, explicitly enable it and set a human title via Stack.Screen options. */}
           <Stack screenOptions={{ headerShown: false }}>
@@ -91,9 +95,11 @@ export default function RootLayout() {
             <Stack.Screen name="oauth/callback" />
           </Stack>
           <StatusBar style="auto" />
-          </QueryClientProvider>
-        </trpc.Provider>
-      </GestureHandlerRootView>
+              </QueryClientProvider>
+            </trpc.Provider>
+          </GestureHandlerRootView>
+        </ToastProvider>
+      </I18nProvider>
     </SimpleChatProvider>
   );
 

@@ -4,6 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
+import { useI18n } from "@/lib/context/i18n-context";
 
 export type LLMConfig = {
   presetId?: string;      // 选中的预设模型 ID
@@ -99,6 +100,7 @@ const MODEL_PRESETS = [
 
 export default function SettingsScreen() {
   const colors = useColors();
+  const { language, setLanguage, t } = useI18n();
   const [config, setConfig] = useState<LLMConfig>({});
   const [selectedPresetId, setSelectedPresetId] = useState<string>("");
   const [apiKey, setApiKey] = useState("");
@@ -224,17 +226,64 @@ export default function SettingsScreen() {
     <ScreenContainer className="p-4">
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
         <View className="gap-6">
-          {/* Header */}
+          {/* Header with Language Switcher */}
           <View className="gap-2">
-            <Text className="text-3xl font-bold text-foreground">大模型设置</Text>
+            <View className="flex-row justify-between items-center">
+              <Text className="text-3xl font-bold text-foreground">大模型设置</Text>
+              {/* Language Toggle */}
+              <View className="flex-row gap-2 bg-surface rounded-full p-1 border border-border">
+                <TouchableOpacity
+                  onPress={() => setLanguage('zh')}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 20,
+                    backgroundColor: language === 'zh' ? colors.primary : 'transparent',
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: language === 'zh' ? colors.background : colors.foreground,
+                      fontSize: 12,
+                      fontWeight: '600',
+                    }}
+                  >
+                    中文
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setLanguage('en')}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 20,
+                    backgroundColor: language === 'en' ? colors.primary : 'transparent',
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: language === 'en' ? colors.background : colors.foreground,
+                      fontSize: 12,
+                      fontWeight: '600',
+                    }}
+                  >
+                    English
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
             <Text className="text-sm text-muted">
-              选择你喜欢的 AI 模型，输入 API Key 即可开始聊天
+              {language === 'zh'
+                ? '选择你喜欢的 AI 模型，输入 API Key 即可开始聊天'
+                : 'Select your favorite AI model and enter your API Key to start chatting'}
             </Text>
           </View>
 
           {/* Model Selection */}
           <View className="gap-3">
-            <Text className="text-lg font-semibold text-foreground">选择模型</Text>
+            <Text className="text-lg font-semibold text-foreground">
+              {language === 'zh' ? '选择模型' : 'Select Model'}
+            </Text>
             <View className="gap-2">
               {MODEL_PRESETS.map((preset) => (
                 <TouchableOpacity
@@ -306,7 +355,9 @@ export default function SettingsScreen() {
           {/* Custom Model Toggle */}
           <View className="gap-3">
             <View className="flex-row items-center justify-between">
-              <Text className="text-lg font-semibold text-foreground">自定义模型</Text>
+              <Text className="text-lg font-semibold text-foreground">
+                {language === 'zh' ? '自定义模型' : 'Custom Model'}
+              </Text>
               <TouchableOpacity
                 onPress={() => setShowCustom(!showCustom)}
                 style={{

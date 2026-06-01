@@ -35,7 +35,12 @@ export function MessageList({ messages }: MessageListProps) {
       renderItem={renderMessage}
       keyExtractor={(item) => item.id}
       contentContainerStyle={{ paddingVertical: 16 }}
-      inverted={false}
+      inverted={true}
+      scrollEnabled={true}
+      scrollEventThrottle={16}
+      maxToRenderPerBatch={10}
+      updateCellsBatchingPeriod={50}
+      windowSize={10}
     />
   );
 }

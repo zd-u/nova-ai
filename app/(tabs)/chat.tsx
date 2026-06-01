@@ -4,9 +4,11 @@ import { ScreenContainer } from '@/components/screen-container';
 import { MessageList } from '@/components/message-list';
 import { MessageInput } from '@/components/message-input';
 import { useChatContext } from '@/lib/context/simple-chat-context';
+import { useI18n } from '@/lib/context/i18n-context';
 
 export default function ChatScreen() {
   const { messages, loading, error, sendMessage, clearHistory } = useChatContext();
+  const { language } = useI18n();
 
   return (
     <ScreenContainer className="flex-1 bg-background" edges={['top', 'left', 'right', 'bottom']}>
@@ -22,7 +24,7 @@ export default function ChatScreen() {
             onPress={clearHistory}
             className="text-sm text-muted underline"
           >
-            清除历史
+            {language === 'zh' ? '清除历史' : 'Clear History'}
           </Text>
         </View>
         {/* MessageList uses FlatList which handles scrolling internally */}

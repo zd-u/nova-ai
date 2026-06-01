@@ -32,7 +32,7 @@ export function MessageInput({ onSend, loading }: MessageInputProps) {
         className="flex-1 bg-surface rounded-full px-4 py-3 text-foreground"
         editable={!loading}
         multiline
-        maxLength={500}
+        maxLength={2000}
       />
       <Pressable
         onPress={handleSend}

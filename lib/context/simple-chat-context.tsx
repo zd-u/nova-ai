@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useCallback, useMemo, useEf
 import axios from 'axios';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useToast } from 'react-native-toast-notifications';
 
 export interface ChatMessage {
   id: string;
@@ -96,6 +97,16 @@ const loadMessagesFromStorage = async (): Promise<ChatMessage[]> => {
   return [];
 };
 
+// Helper function to truncate conversation history to prevent token explosion
+// Keep only the last N messages to balance context and token usage
+const truncateHistory = (messages: ChatMessage[], maxMessages: number = 20): ChatMessage[] => {
+  if (messages.length <= maxMessages) {
+    return messages;
+  }
+  // Keep the most recent N messages
+  return messages.slice(-maxMessages);
+};
+
 // Helper function to save messages to AsyncStorage
 const saveMessagesToStorage = async (messages: ChatMessage[]): Promise<void> => {
   try {
@@ -111,6 +122,7 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const toast = useToast();
 
   // Create chatClient inside Provider to ensure environment is ready
   const chatClient = useMemo(() => createChatClient(), []);
@@ -174,9 +186,11 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
           console.log('No custom LLM config found, using default');
         }
         
-        // Use current messages state for history
+        // Use current messages state for history (with truncation to prevent token explosion)
         setMessages((prev) => {
-          const history = prev.map((msg) => ({
+          // Keep only the last 20 messages for API context
+          const truncatedMessages = truncateHistory(prev, 20);
+          const history = truncatedMessages.map((msg) => ({
             sender: msg.sender,
             text: msg.content,
           }));
@@ -200,7 +214,13 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
                 };
                 setMessages((prevState) => [...prevState, novaMessage]);
               } else {
-                setError(data.error || 'Failed to generate reply');
+                const errorMsg = data.error || 'Failed to generate reply';
+                setError(errorMsg);
+                toast.show(errorMsg, {
+                  type: 'danger',
+                  placement: 'bottom',
+                  duration: 3000,
+                });
               }
               setLoading(false);
             })
@@ -226,6 +246,12 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
               }
               
               setError(errorMessage);
+              // Show toast notification instead of Alert
+              toast.show(errorMessage, {
+                type: 'danger',
+                placement: 'bottom',
+                duration: 3000,
+              });
               console.error('Send message error:', err);
               setLoading(false);
             });
