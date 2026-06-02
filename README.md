@@ -39,7 +39,7 @@
 
 #### 2. Installation
 ```bash
-git clone https://github.com/yourusername/nova-ai.git
+git clone https://github.com/zd-u/nova-ai.git
 cd nova-ai
 pnpm install
 ```
@@ -252,7 +252,7 @@ For issues, questions, or suggestions:
 
 #### 2. 安装
 ```bash
-git clone https://github.com/yourusername/nova-ai.git
+git clone https://github.com/zd-u/nova-ai.git
 cd nova-ai
 pnpm install
 ```

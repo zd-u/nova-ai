@@ -6,6 +6,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { invokeLLM, type LLMConfig } from "./llm";
+import { ENV } from "./env";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -60,11 +61,11 @@ async function startServer() {
     res.json({ ok: true, timestamp: Date.now() });
   });
 
-  // Enhanced chat endpoint with context memory and personality
-  // 支持动态 LLM 配置：用户可以通过请求体传入自定义的 API URL、Key 和模型名称
+  // Enhanced chat endpoint with streaming support
+  // 支持流式输出和动态 LLM 配置
   app.post("/api/chat", async (req, res) => {
     try {
-      const { message, history = [], llmConfig } = req.body;
+      const { message, history = [], llmConfig, stream = false } = req.body;
       if (!message || typeof message !== "string") {
         return res.status(400).json({ error: "Missing or invalid message" });
       }
@@ -75,7 +76,7 @@ async function startServer() {
         content: msg.content || msg.text,
       }));
 
-      // Build a more nuanced system prompt with personality dimensions
+      // Build system prompt
       const systemPrompt = `你是 Nova，一个真实、有趣的专属女友（AI 情感助手扮演）。你的性格特点：
 
 【核心性格】
@@ -117,7 +118,6 @@ async function startServer() {
           role: "system",
           content: systemPrompt,
         },
-        // Include conversation history for context
         ...conversationHistory,
         {
           role: "user",
@@ -125,25 +125,120 @@ async function startServer() {
         },
       ];
 
-      // 支持动态 LLM 配置：从请求体中读取用户自定义的配置
-      // 不硬编码 maxTokens，让 llm.ts 的默认值生效
-      const result = await invokeLLM(
-        {
-          messages,
-        },
-        llmConfig as LLMConfig | undefined,
-      );
+      // 如果不需要流式输出，返回全量响应
+      if (!stream) {
+        const result = await invokeLLM(
+          { messages },
+          llmConfig as LLMConfig | undefined,
+        );
 
-      const messageContent = result.choices[0]?.message.content;
-      const reply =
-        typeof messageContent === "string"
-          ? messageContent
-          : "嗯，我在听呢...";
+        const messageContent = result.choices[0]?.message.content;
+        const reply =
+          typeof messageContent === "string"
+            ? messageContent
+            : "嗯，我在听呢...";
 
-      return res.json({
-        success: true,
-        reply,
-      });
+        return res.json({
+          success: true,
+          reply,
+        });
+      }
+
+      // 流式输出：使用 SSE
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
+
+      try {
+        const apiKey = llmConfig?.apiKey || process.env.LLM_API_KEY || "";
+        const apiUrl = llmConfig?.apiUrl || process.env.LLM_API_URL || "";
+        const model = llmConfig?.model || process.env.LLM_MODEL || "";
+
+        if (!apiKey || !apiUrl || !model) {
+          res.write(`data: ${JSON.stringify({ error: "Missing LLM configuration" })}\n\n`);
+          res.end();
+          return;
+        }
+
+        // 构建 payload
+        const payload: Record<string, unknown> = {
+          model,
+          messages: messages.map((msg) => ({
+            role: msg.role,
+            content: typeof msg.content === "string" ? msg.content : msg.content,
+          })),
+          stream: true,
+        };
+
+        // 设置 maxTokens
+        if (model.includes("gemini")) {
+          payload.max_tokens = 32768;
+        } else {
+          payload.max_tokens = 2048;
+        }
+
+        const response = await fetch(apiUrl, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          res.write(
+            `data: ${JSON.stringify({ error: `LLM API error: ${response.status}` })}\n\n`,
+          );
+          res.end();
+          return;
+        }
+
+        // 读取流式响应
+        if (!response.body) {
+          res.write(`data: ${JSON.stringify({ error: "No response body" })}\n\n`);
+          res.end();
+          return;
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.choices?.[0]?.delta?.content) {
+                  const chunk = data.choices[0].delta.content;
+                  res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
+                }
+              } catch (e) {
+                // 忽略解析错误
+              }
+            }
+          }
+        }
+
+        res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+        res.end();
+      } catch (error) {
+        console.error("Streaming error:", error);
+        res.write(
+          `data: ${JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" })}\n\n`,
+        );
+        res.end();
+      }
     } catch (error) {
       console.error("Chat error:", error);
       return res.status(500).json({

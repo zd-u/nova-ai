@@ -1,7 +1,6 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
-import axios from 'axios';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useToast } from 'react-native-toast-notifications';
@@ -34,53 +33,7 @@ export type LLMConfig = {
   model?: string;
 };
 
-// Create axios instance with proper configuration
-const createChatClient = () => {
-  let baseURL = '';
-  
-  // Try to get API base URL from environment (highest priority)
-  if (process.env.EXPO_PUBLIC_API_BASE_URL) {
-    baseURL = process.env.EXPO_PUBLIC_API_BASE_URL;
-    console.log('Using API URL from EXPO_PUBLIC_API_BASE_URL:', baseURL);
-  } else if (typeof window !== 'undefined') {
-    // In web environment, construct the API base URL
-    const { protocol, hostname } = window.location;
-    // Replace 8081 (Metro) with 3000 (API server)
-    const apiHostname = hostname.replace(/^8081-/, '3000-');
-    if (apiHostname !== hostname) {
-      // We detected a port replacement, use absolute URL
-      baseURL = `${protocol}//${apiHostname}`;
-      console.log('Using API URL from web hostname replacement:', baseURL);
-    }
-    // Otherwise, use relative URL (will be proxied by Metro)
-  } else {
-    // In native environment, try to get from Constants or use default
-    try {
-      const expoConfig = Constants.expoConfig;
-      if (expoConfig?.extra?.apiBaseUrl) {
-        baseURL = expoConfig.extra.apiBaseUrl;
-        console.log('Using API URL from expoConfig:', baseURL);
-      } else {
-        // Default to localhost for development
-        baseURL = 'http://localhost:3000';
-        console.log('Using default localhost API URL');
-      }
-    } catch (e) {
-      // Fallback to localhost
-      baseURL = 'http://localhost:3000';
-      console.log('Using fallback localhost API URL');
-    }
-  }
-
-  return axios.create({
-    baseURL,
-    timeout: 30000,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    withCredentials: true,
-  });
-};
+// Removed axios client - now using fetch for streaming support
 
 // Helper function to load messages from AsyncStorage
 const loadMessagesFromStorage = async (): Promise<ChatMessage[]> => {
@@ -124,8 +77,7 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
   const [isInitialized, setIsInitialized] = useState(false);
   const toast = useToast();
 
-  // Create chatClient inside Provider to ensure environment is ready
-  const chatClient = useMemo(() => createChatClient(), []);
+  // Chat client no longer needed - using fetch for streaming
 
   // Load messages from storage on mount
   useEffect(() => {
@@ -195,58 +147,126 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
             text: msg.content,
           }));
           
-          // Send API request with optional LLM config
-          chatClient.post('/api/chat', {
-            message: content,
-            history,
-            ...(llmConfig && { llmConfig }),
+          // Create placeholder message for streaming
+          const novaMessageId = (Date.now() + 1).toString();
+          const placeholderMessage: ChatMessage = {
+            id: novaMessageId,
+            content: '',
+            sender: 'nova',
+            timestamp: Date.now(),
+          };
+          const messagesWithPlaceholder = [...prev, placeholderMessage];
+          setMessages(messagesWithPlaceholder);
+          
+          // Send API request with streaming enabled
+          const getApiBaseUrl = () => {
+            if (process.env.EXPO_PUBLIC_API_BASE_URL) {
+              return process.env.EXPO_PUBLIC_API_BASE_URL;
+            } else if (typeof window !== 'undefined') {
+              const { protocol, hostname } = window.location;
+              const apiHostname = hostname.replace(/^8081-/, '3000-');
+              if (apiHostname !== hostname) {
+                return `${protocol}//${apiHostname}`;
+              }
+            }
+            return '';
+          };
+          
+          const apiBaseUrl = getApiBaseUrl();
+          const apiUrl = apiBaseUrl ? `${apiBaseUrl}/api/chat` : '/api/chat';
+          
+          fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              message: content,
+              history,
+              stream: true,
+              ...(llmConfig && { llmConfig }),
+            }),
           })
             .then((response) => {
-              console.log('API response:', response.data);
-              const data = response.data;
-
-              if (data.success && data.reply) {
-                const novaMessage: ChatMessage = {
-                  id: (Date.now() + 1).toString(),
-                  content: data.reply,
-                  sender: 'nova',
-                  timestamp: Date.now(),
-                };
-                setMessages((prevState) => [...prevState, novaMessage]);
-              } else {
-                const errorMsg = data.error || 'Failed to generate reply';
-                setError(errorMsg);
-                toast.show(errorMsg, {
-                  type: 'danger',
-                  placement: 'bottom',
-                  duration: 3000,
-                });
+              if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
               }
-              setLoading(false);
+              
+              const reader = response.body?.getReader();
+              if (!reader) {
+                throw new Error('No response body');
+              }
+              
+              const decoder = new TextDecoder();
+              let buffer = '';
+              let fullContent = '';
+              
+              const processStream = async () => {
+                try {
+                  while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+                    
+                    for (const line of lines) {
+                      if (line.startsWith('data: ')) {
+                        try {
+                          const data = JSON.parse(line.slice(6));
+                          
+                          if (data.error) {
+                            throw new Error(data.error);
+                          }
+                          
+                          if (data.chunk) {
+                            fullContent += data.chunk;
+                            // Update message with streaming content
+                            setMessages((prevState) =>
+                              prevState.map((msg) =>
+                                msg.id === novaMessageId
+                                  ? { ...msg, content: fullContent }
+                                  : msg
+                              )
+                            );
+                          }
+                          
+                          if (data.done) {
+                            console.log('Stream complete');
+                            setLoading(false);
+                            return;
+                          }
+                        } catch (e) {
+                          console.error('Error parsing SSE data:', e);
+                        }
+                      }
+                    }
+                  }
+                  
+                  setLoading(false);
+                } catch (err) {
+                  const errorMessage = err instanceof Error ? err.message : 'Stream error';
+                  setError(errorMessage);
+                  toast.show(errorMessage, {
+                    type: 'danger',
+                    placement: 'bottom',
+                    duration: 3000,
+                  });
+                  setLoading(false);
+                }
+              };
+              
+              processStream();
             })
             .catch((err) => {
               let errorMessage = 'Unknown error';
               
-              if (axios.isAxiosError(err)) {
-                if (err.response) {
-                  // Server responded with error status
-                  errorMessage = `Server error: ${err.response.status}`;
-                  if (err.response.data?.error) {
-                    errorMessage = err.response.data.error;
-                  }
-                } else if (err.request) {
-                  // Request was made but no response
-                  errorMessage = 'No response from server';
-                } else {
-                  // Error in request setup
-                  errorMessage = err.message;
-                }
-              } else if (err instanceof Error) {
+              if (err instanceof Error) {
                 errorMessage = err.message;
               }
               
               setError(errorMessage);
-              // Show toast notification instead of Alert
               toast.show(errorMessage, {
                 type: 'danger',
                 placement: 'bottom',
@@ -256,14 +276,14 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
               setLoading(false);
             });
           
-          return prev;
+          return messagesWithPlaceholder;
         });
       } catch (err) {
         setLoading(false);
         console.error('Send message setup error:', err);
       }
     },
-    [chatClient]
+    []
   );
 
   const value: ChatContextType = {
