@@ -14,7 +14,7 @@ export type LLMConfig = {
   isCustom?: boolean;     // 是否使用自定义配置
 };
 
-// 2026 年 6 月真实可用的主流 LLM 模型
+// 2026 年 6 月最新真实可用的 LLM 模型
 const MODEL_PRESETS = [
   {
     id: "gpt-5-5",
@@ -25,20 +25,12 @@ const MODEL_PRESETS = [
     description: "OpenAI 最新旗舰，全能型",
   },
   {
-    id: "gpt-5-2",
-    name: "GPT-5.2",
-    provider: "OpenAI",
-    apiUrl: "https://api.openai.com/v1/chat/completions",
-    modelId: "gpt-5.2",
-    description: "稳定高效，成本优化",
-  },
-  {
-    id: "claude-opus-4-7",
-    name: "Claude Opus 4.7",
-    provider: "Anthropic (OpenRouter)",
-    apiUrl: "https://openrouter.ai/api/v1/chat/completions",
-    modelId: "anthropic/claude-opus-4-20250514",
-    description: "强大的分析和编码能力",
+    id: "claude-opus-4-8-max",
+    name: "Claude Opus 4.8 Max",
+    provider: "Anthropic",
+    apiUrl: "https://api.anthropic.com/v1/messages",
+    modelId: "claude-opus-4-8-20250514",
+    description: "Anthropic 最强，长上下文和编码",
   },
   {
     id: "gemini-3-1-pro",
@@ -49,36 +41,60 @@ const MODEL_PRESETS = [
     description: "Google 最新，100万 token 上下文",
   },
   {
-    id: "deepseek-v3",
-    name: "DeepSeek V3",
+    id: "grok-4-3-high",
+    name: "Grok 4.3 High",
+    provider: "xAI",
+    apiUrl: "https://api.x.ai/v1/chat/completions",
+    modelId: "grok-4.3-high",
+    description: "xAI 最强，推理和实时信息",
+  },
+  {
+    id: "deepseek-v4-pro-max",
+    name: "DeepSeek V4 Pro Max",
     provider: "DeepSeek",
     apiUrl: "https://api.deepseek.com/v1/chat/completions",
-    modelId: "deepseek-chat",
-    description: "国内最强推理模型",
+    modelId: "deepseek-v4-pro-max",
+    description: "DeepSeek 最强推理，高性能",
   },
   {
-    id: "qwen-max",
-    name: "Qwen Max",
+    id: "deepseek-v4-flash",
+    name: "DeepSeek V4 Flash",
+    provider: "DeepSeek",
+    apiUrl: "https://api.deepseek.com/v1/chat/completions",
+    modelId: "deepseek-v4-flash",
+    description: "DeepSeek 快速版，低成本",
+  },
+  {
+    id: "qwen-3-7-max",
+    name: "Qwen 3.7 Max",
     provider: "Alibaba",
     apiUrl: "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation",
-    modelId: "qwen-max",
-    description: "阿里最新，性能均衡",
+    modelId: "qwen-3.7-max",
+    description: "通义千问最新，性能均衡",
   },
   {
-    id: "glm-4-plus",
-    name: "GLM-4 Plus",
+    id: "glm-5-1",
+    name: "GLM-5.1",
     provider: "Zhipu",
     apiUrl: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
-    modelId: "glm-4-plus",
+    modelId: "glm-5.1",
     description: "智谱最新，长文本优化",
   },
   {
-    id: "moonshot-v1-128k",
-    name: "Moonshot V1 (128K)",
+    id: "kimi-k2-6",
+    name: "Kimi K2.6",
     provider: "Moonshot",
     apiUrl: "https://api.moonshot.cn/v1/chat/completions",
     modelId: "moonshot-v1-128k",
     description: "月之暗面，超长上下文",
+  },
+  {
+    id: "minimax-m2-7",
+    name: "MiniMax M2.7",
+    provider: "MiniMax",
+    apiUrl: "https://api.minimaxi.chat/v1/text/chatcompletion",
+    modelId: "minimax-text-01",
+    description: "MiniMax 最新，多模态能力强",
   },
 ];
 
