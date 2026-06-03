@@ -22,39 +22,39 @@ const MODEL_PRESETS = [
     provider: "OpenAI",
     apiUrl: "https://api.openai.com/v1/chat/completions",
     modelId: "gpt-5.5",
-    description: "OpenAI 最新旗舰，全能型",
+    description: "OpenAI 旗舰，1.1M 上下文，推理+编程",
   },
   {
-    id: "claude-opus-4-8-max",
-    name: "Claude Opus 4.8 Max",
+    id: "claude-opus-4-8",
+    name: "Claude Opus 4.8",
     provider: "Anthropic",
-    apiUrl: "https://api.anthropic.com/v1/messages",
-    modelId: "claude-opus-4-8-20250514",
-    description: "Anthropic 最强，长上下文和编码",
+    apiUrl: "https://openrouter.ai/api/v1/chat/completions",
+    modelId: "claude-opus-4-8",
+    description: "Anthropic 最强，长文+编程+Agent",
   },
   {
-    id: "gemini-3-1-pro",
-    name: "Gemini 3.1 Pro",
+    id: "gemini-3-5-flash",
+    name: "Gemini 3.5 Flash",
     provider: "Google",
-    apiUrl: "https://generativelanguage.googleapis.com/v1beta/openai/",
-    modelId: "gemini-1.5-pro",
-    description: "Google 最新，100万 token 上下文",
+    apiUrl: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+    modelId: "gemini-3.5-flash",
+    description: "Google 最新，又快又便宜",
   },
   {
-    id: "grok-4-3-high",
-    name: "Grok 4.3 High",
+    id: "grok-4-3",
+    name: "Grok 4.3",
     provider: "xAI",
     apiUrl: "https://api.x.ai/v1/chat/completions",
-    modelId: "grok-4.3-high",
-    description: "xAI 最强，推理和实时信息",
+    modelId: "grok-4.3",
+    description: "xAI 旗舰，1M 上下文，实时信息",
   },
   {
-    id: "deepseek-v4-pro-max",
-    name: "DeepSeek V4 Pro Max",
+    id: "deepseek-v4-pro",
+    name: "DeepSeek V4 Pro",
     provider: "DeepSeek",
     apiUrl: "https://api.deepseek.com/v1/chat/completions",
-    modelId: "deepseek-v4-pro-max",
-    description: "DeepSeek 最强推理，高性能",
+    modelId: "deepseek-v4-pro",
+    description: "DeepSeek 旗舰推理，1M 上下文",
   },
   {
     id: "deepseek-v4-flash",
@@ -65,12 +65,12 @@ const MODEL_PRESETS = [
     description: "DeepSeek 快速版，低成本",
   },
   {
-    id: "qwen-3-7-max",
-    name: "Qwen 3.7 Max",
+    id: "qwen3-7-max",
+    name: "Qwen3.7-Max",
     provider: "Alibaba",
-    apiUrl: "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation",
-    modelId: "qwen-3.7-max",
-    description: "通义千问最新，性能均衡",
+    apiUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+    modelId: "qwen3.7-max",
+    description: "通义千问旗舰，1M 上下文",
   },
   {
     id: "glm-5-1",
@@ -78,23 +78,23 @@ const MODEL_PRESETS = [
     provider: "Zhipu",
     apiUrl: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
     modelId: "glm-5.1",
-    description: "智谱最新，长文本优化",
+    description: "智谱最新，开源 MIT 协议",
   },
   {
     id: "kimi-k2-6",
     name: "Kimi K2.6",
     provider: "Moonshot",
     apiUrl: "https://api.moonshot.cn/v1/chat/completions",
-    modelId: "moonshot-v1-128k",
-    description: "月之暗面，超长上下文",
+    modelId: "kimi-k2.6",
+    description: "月之暗面旗舰，1T参数 MoE，Agent 强",
   },
   {
-    id: "minimax-m2-7",
-    name: "MiniMax M2.7",
+    id: "minimax-m3",
+    name: "MiniMax M3",
     provider: "MiniMax",
-    apiUrl: "https://api.minimaxi.chat/v1/text/chatcompletion",
-    modelId: "minimax-text-01",
-    description: "MiniMax 最新，多模态能力强",
+    apiUrl: "https://api.minimaxi.com/v1/chat/completions",
+    modelId: "MiniMax-M3",
+    description: "MiniMax 最新旗舰，1M 上下文，多模态",
   },
 ];
 
@@ -313,7 +313,7 @@ export default function SettingsScreen() {
               style={{ color: colors.foreground }}
             />
             <Text className="text-xs text-muted">
-              🔒 Your API Key is stored locally on your device and sent to the LLM provider's API. We do not store or log your keys on our servers.
+              🔒 Your API Key is stored locally on your device and forwarded to the LLM provider via our server. We never store or log your keys.
             </Text>
           </View>
 

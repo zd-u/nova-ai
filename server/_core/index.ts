@@ -5,7 +5,7 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
-import { invokeLLM, type LLMConfig } from "./llm";
+import { invokeLLM, invokeLLMStream, type LLMConfig } from "./llm";
 import { ENV } from "./env";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -149,85 +149,16 @@ async function startServer() {
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
       res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
+      res.setHeader("X-Accel-Buffering", "no");
 
       try {
-        const apiKey = llmConfig?.apiKey || process.env.LLM_API_KEY || "";
-        const apiUrl = llmConfig?.apiUrl || process.env.LLM_API_URL || "";
-        const model = llmConfig?.model || process.env.LLM_MODEL || "";
-
-        if (!apiKey || !apiUrl || !model) {
-          res.write(`data: ${JSON.stringify({ error: "Missing LLM configuration" })}\n\n`);
-          res.end();
-          return;
-        }
-
-        // 构建 payload
-        const payload: Record<string, unknown> = {
-          model,
-          messages: messages.map((msg) => ({
-            role: msg.role,
-            content: typeof msg.content === "string" ? msg.content : msg.content,
-          })),
-          stream: true,
+        // 使用 invokeLLMStream 复用所有预处理逻辑（normalizeMessage、maxTokens等）
+        const streamParams = {
+          messages: conversationHistory,
         };
 
-        // 设置 maxTokens
-        if (model.includes("gemini")) {
-          payload.max_tokens = 32768;
-        } else {
-          payload.max_tokens = 2048;
-        }
-
-        const response = await fetch(apiUrl, {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          res.write(
-            `data: ${JSON.stringify({ error: `LLM API error: ${response.status}` })}\n\n`,
-          );
-          res.end();
-          return;
-        }
-
-        // 读取流式响应
-        if (!response.body) {
-          res.write(`data: ${JSON.stringify({ error: "No response body" })}\n\n`);
-          res.end();
-          return;
-        }
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              try {
-                const data = JSON.parse(line.slice(6));
-                if (data.choices?.[0]?.delta?.content) {
-                  const chunk = data.choices[0].delta.content;
-                  res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
-                }
-              } catch (e) {
-                // 忽略解析错误
-              }
-            }
-          }
+        for await (const chunk of invokeLLMStream(streamParams, llmConfig)) {
+          res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
         }
 
         res.write(`data: ${JSON.stringify({ done: true })}\n\n`);

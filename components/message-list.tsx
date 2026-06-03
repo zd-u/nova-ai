@@ -2,6 +2,10 @@ import React from 'react';
 import { FlatList, Text, View } from 'react-native';
 import { ChatMessage } from '@/lib/context/simple-chat-context';
 
+// inverted={true} 时，FlatList 从底部开始渲染
+// 数据需要反向，使得视觉上消息按时间正序显示（旧→新）
+// 新消息出现在底部，自动滚动到底部
+
 type MessageListProps = {
   messages: ChatMessage[] | undefined;
 };
@@ -31,7 +35,7 @@ export function MessageList({ messages }: MessageListProps) {
 
   return (
     <FlatList
-      data={messages}
+      data={[...(messages ?? [])].reverse()}
       renderItem={renderMessage}
       keyExtractor={(item) => item.id}
       contentContainerStyle={{ paddingVertical: 16 }}

@@ -372,3 +372,124 @@ export async function invokeLLM(
 
   return (await response.json()) as InvokeResult;
 }
+
+// 流式输出：逐个上下文输出内容块
+// 复用 invokeLLM 的所有预处理逻辑
+// 应用场景：后端 SSE 流式输出
+export async function* invokeLLMStream(
+  params: InvokeParams,
+  llmConfig?: LLMConfig,
+): AsyncGenerator<string> {
+  const apiKey = resolveApiKey(llmConfig?.apiKey);
+  const apiUrl = resolveApiUrl(llmConfig?.apiUrl);
+  const model = resolveModel(llmConfig?.model);
+  
+  assertApiKey(apiKey);
+
+  const {
+    messages,
+    tools,
+    toolChoice,
+    tool_choice,
+    outputSchema,
+    output_schema,
+    responseFormat,
+    response_format,
+  } = params;
+
+  const payload: Record<string, unknown> = {
+    model,
+    messages: messages.map(normalizeMessage),
+    stream: true,
+  };
+
+  if (tools && tools.length > 0) {
+    payload.tools = tools;
+  }
+
+  const normalizedToolChoice = normalizeToolChoice(toolChoice || tool_choice, tools);
+  if (normalizedToolChoice) {
+    payload.tool_choice = normalizedToolChoice;
+  }
+
+  // 根据模型类型调整参数
+  const maxTokens = params.maxTokens || params.max_tokens;
+  
+  if (model.includes("gemini")) {
+    payload.max_tokens = maxTokens || 32768;
+    payload.thinking = {
+      budget_tokens: 128,
+    };
+  } else if (model.includes("claude")) {
+    payload.max_tokens = maxTokens || 2048;
+  } else {
+    payload.max_tokens = maxTokens || 2048;
+  }
+
+  const normalizedResponseFormat = normalizeResponseFormat({
+    responseFormat,
+    response_format,
+    outputSchema,
+    output_schema,
+  });
+
+  if (normalizedResponseFormat) {
+    payload.response_format = normalizedResponseFormat;
+  }
+
+  const response = await fetch(apiUrl, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`LLM Stream API Error [${model}]:`, {
+      status: response.status,
+      statusText: response.statusText,
+      url: apiUrl,
+      error: errorText,
+    });
+    throw new Error(
+      `LLM stream failed: ${response.status} ${response.statusText} – ${errorText}`,
+    );
+  }
+
+  if (!response.body) {
+    throw new Error("No response body for streaming");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.choices?.[0]?.delta?.content) {
+              yield data.choices[0].delta.content;
+            }
+          } catch (e) {
+            // 忽略解析错误
+          }
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}

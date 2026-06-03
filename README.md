@@ -20,15 +20,18 @@
 
 ### Supported Models (2026 Latest)
 
-| Provider | Model | Features |
-|----------|-------|----------|
-| **DeepSeek** | V4-Pro / V4-Flash | Best reasoning, fast responses |
-| **OpenAI** | GPT-5.4 / GPT-5.5 Instant | Latest flagship models |
-| **Anthropic** | Claude Opus 4.8 | Strong analysis capabilities |
-| **Google** | Gemini 3.5 Flash / 3.1 Pro | Fast & balanced performance |
-| **Alibaba** | Qwen 3.7 Max | Leading Chinese model |
-| **Zhipu** | GLM-5.1 | Excellent long-context handling |
-| **Moonshot** | Kimi K2.6 | Ultra-long context support |
+| 模型 | modelId | 提供商 | API 地址 |
+|------|---------|--------|----------|
+| GPT-5.5 | `gpt-5.5` | OpenAI | api.openai.com |
+| Claude Opus 4.8 | `claude-opus-4-8` | Anthropic (via OpenRouter) | openrouter.ai |
+| Gemini 3.5 Flash | `gemini-3.5-flash` | Google | generativelanguage.googleapis.com |
+| Grok 4.3 | `grok-4.3` | xAI | api.x.ai |
+| DeepSeek V4 Pro | `deepseek-v4-pro` | DeepSeek | api.deepseek.com |
+| DeepSeek V4 Flash | `deepseek-v4-flash` | DeepSeek | api.deepseek.com |
+| Qwen3.7-Max | `qwen3.7-max` | Alibaba | dashscope.aliyuncs.com |
+| GLM-5.1 | `glm-5.1` | Zhipu | open.bigmodel.cn |
+| Kimi K2.6 | `kimi-k2.6` | Moonshot | api.moonshot.cn |
+| MiniMax M3 | `MiniMax-M3` | MiniMax | api.minimaxi.com |
 
 ### Quick Start
 
@@ -233,15 +236,18 @@ For issues, questions, or suggestions:
 
 ### 支持的模型（2026 最新）
 
-| 提供商 | 模型 | 特点 |
-|--------|------|------|
-| **DeepSeek** | V4-Pro / V4-Flash | 最强推理能力，快速响应 |
-| **OpenAI** | GPT-5.4 / GPT-5.5 Instant | 最新旗舰模型 |
-| **Anthropic** | Claude Opus 4.8 | 强大的分析能力 |
-| **Google** | Gemini 3.5 Flash / 3.1 Pro | 快速且均衡的性能 |
-| **阿里巴巴** | Qwen 3.7 Max | 国内最强模型 |
-| **智谱** | GLM-5.1 | 长文本处理强 |
-| **月之暗面** | Kimi K2.6 | 超长上下文支持 |
+| 模型 | modelId | 提供商 | API 地址 |
+|------|---------|--------|----------|
+| GPT-5.5 | `gpt-5.5` | OpenAI | api.openai.com |
+| Claude Opus 4.8 | `claude-opus-4-8` | Anthropic (via OpenRouter) | openrouter.ai |
+| Gemini 3.5 Flash | `gemini-3.5-flash` | Google | generativelanguage.googleapis.com |
+| Grok 4.3 | `grok-4.3` | xAI | api.x.ai |
+| DeepSeek V4 Pro | `deepseek-v4-pro` | DeepSeek | api.deepseek.com |
+| DeepSeek V4 Flash | `deepseek-v4-flash` | DeepSeek | api.deepseek.com |
+| Qwen3.7-Max | `qwen3.7-max` | Alibaba | dashscope.aliyuncs.com |
+| GLM-5.1 | `glm-5.1` | Zhipu | open.bigmodel.cn |
+| Kimi K2.6 | `kimi-k2.6` | Moonshot | api.moonshot.cn |
+| MiniMax M3 | `MiniMax-M3` | MiniMax | api.minimaxi.com |
 
 ### 快速开始
 
