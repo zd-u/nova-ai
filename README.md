@@ -196,8 +196,8 @@ expo build:ios
 ### Privacy & Security
 
 - ✅ All conversations stored locally on your device
-- ✅ Your API keys never leave your device
-- ✅ No server-side data collection
+- ✅ Your API keys are stored locally and forwarded to LLM providers via our server
+- ✅ We never store or log your API keys
 - ✅ Open-source code for full transparency
 
 ### Contributing
@@ -412,8 +412,8 @@ expo build:ios
 ### 隐私与安全
 
 - ✅ 所有对话存储在你的设备本地
-- ✅ 你的 API Key 永不离开你的设备
-- ✅ 无服务器端数据收集
+- ✅ 你的 API Key 存储在本地，通过我们的服务器转发至 AI 服务商
+- ✅ 我们永不存储或记录你的 API Key
 - ✅ 开源代码，完全透明
 
 ### 贡献

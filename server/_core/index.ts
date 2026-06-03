@@ -153,8 +153,15 @@ async function startServer() {
 
       try {
         // 使用 invokeLLMStream 复用所有预处理逻辑（normalizeMessage、maxTokens等）
+        // 构建完整的消息列表：系统提示 + 对话历史 + 用户当前消息
+        const streamMessages = [
+          { role: "system", content: systemPrompt },
+          ...conversationHistory,
+          { role: "user", content: message },
+        ];
+
         const streamParams = {
-          messages: conversationHistory,
+          messages: streamMessages,
         };
 
         for await (const chunk of invokeLLMStream(streamParams, llmConfig)) {
