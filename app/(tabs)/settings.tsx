@@ -1,6 +1,7 @@
 import { ScrollView, Text, View, TouchableOpacity, TextInput, Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useState, useEffect } from "react";
+import { useToast } from "react-native-toast-notifications";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
@@ -101,6 +102,7 @@ const MODEL_PRESETS = [
 export default function SettingsScreen() {
   const colors = useColors();
   const { language, setLanguage, t } = useI18n();
+  const toast = useToast();
   const [config, setConfig] = useState<LLMConfig>({});
   const [selectedPresetId, setSelectedPresetId] = useState<string>("");
   const [apiKey, setApiKey] = useState("");
@@ -143,12 +145,12 @@ export default function SettingsScreen() {
 
   const handleSaveConfig = async () => {
     if (!apiKey.trim()) {
-      Alert.alert("Error", "Please enter your API Key");
+      toast.show("Please enter your API Key", { type: 'danger', placement: 'bottom', duration: 3000 });
       return;
     }
 
     if (!customApiUrl.trim() || !customModelId.trim()) {
-      Alert.alert("Error", "Please select a model or provide custom API settings");
+      toast.show("Please select a model or provide custom API settings", { type: 'danger', placement: 'bottom', duration: 3000 });
       return;
     }
 
@@ -163,10 +165,10 @@ export default function SettingsScreen() {
       };
 
       await AsyncStorage.setItem("llmConfig", JSON.stringify(configToSave));
-      Alert.alert("Success", "Configuration saved!");
+      toast.show("Configuration saved!", { type: 'success', placement: 'bottom', duration: 3000 });
       setConfig(configToSave);
     } catch (error) {
-      Alert.alert("Error", "Failed to save configuration");
+      toast.show("Failed to save configuration", { type: 'danger', placement: 'bottom', duration: 3000 });
       console.error("Error saving config:", error);
     } finally {
       setIsSaving(false);
@@ -182,9 +184,9 @@ export default function SettingsScreen() {
       setShowCustom(false);
       setCustomApiUrl("");
       setCustomModelId("");
-      Alert.alert("Success", "Configuration reset!");
+      toast.show("Configuration reset!", { type: 'success', placement: 'bottom', duration: 3000 });
     } catch (error) {
-      Alert.alert("Error", "Failed to reset configuration");
+      toast.show("Failed to reset configuration", { type: 'danger', placement: 'bottom', duration: 3000 });
       console.error("Error resetting config:", error);
     }
   };
