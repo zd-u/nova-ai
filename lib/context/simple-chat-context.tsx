@@ -1,9 +1,10 @@
-'use client';
 
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
+import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useToast } from 'react-native-toast-notifications';
+import SSEClient from 'react-native-sse';
 
 export interface ChatMessage {
   id: string;
@@ -33,7 +34,7 @@ export type LLMConfig = {
   model?: string;
 };
 
-// Removed axios client - now using fetch for streaming support
+// Removed axios client - now using fetch + react-native-sse for streaming support
 
 // Helper function to load messages from AsyncStorage
 const loadMessagesFromStorage = async (): Promise<ChatMessage[]> => {
@@ -50,24 +51,19 @@ const loadMessagesFromStorage = async (): Promise<ChatMessage[]> => {
   return [];
 };
 
-// Helper function to truncate conversation history to prevent token explosion
-// Keep only the last N messages to balance context and token usage
-const truncateHistory = (messages: ChatMessage[], maxMessages: number = 20): ChatMessage[] => {
-  if (messages.length <= maxMessages) {
-    return messages;
-  }
-  // Keep the most recent N messages
-  return messages.slice(-maxMessages);
-};
-
 // Helper function to save messages to AsyncStorage
 const saveMessagesToStorage = async (messages: ChatMessage[]): Promise<void> => {
   try {
     await AsyncStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
-    console.log('Saved', messages.length, 'messages to AsyncStorage');
   } catch (error) {
     console.error('Error saving messages to AsyncStorage:', error);
   }
+};
+
+// Truncate history to prevent token explosion
+const truncateHistory = (messages: ChatMessage[], maxMessages: number): ChatMessage[] => {
+  if (messages.length <= maxMessages) return messages;
+  return messages.slice(-maxMessages);
 };
 
 export function SimpleChatProvider({ children }: { children: React.ReactNode }) {
@@ -77,30 +73,28 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
   const [isInitialized, setIsInitialized] = useState(false);
   const toast = useToast();
 
-  // Chat client no longer needed - using fetch for streaming
-
-  // Load messages from storage on mount
+  // Load messages on mount
   useEffect(() => {
-    const initializeMessages = async () => {
-      const storedMessages = await loadMessagesFromStorage();
-      setMessages(storedMessages);
+    const init = async () => {
+      const loaded = await loadMessagesFromStorage();
+      setMessages(loaded);
       setIsInitialized(true);
     };
-    initializeMessages();
+    init();
   }, []);
 
-  // Save messages to storage whenever they change
+  // Save messages whenever they change
   useEffect(() => {
     if (isInitialized) {
       saveMessagesToStorage(messages);
     }
   }, [messages, isInitialized]);
 
-  const clearHistory = useCallback(async () => {
+  const clearHistory = useCallback(() => {
     setMessages([]);
     setError(null);
     try {
-      await AsyncStorage.removeItem(CHAT_STORAGE_KEY);
+      AsyncStorage.removeItem(CHAT_STORAGE_KEY);
       console.log('Cleared chat history');
     } catch (error) {
       console.error('Error clearing chat history:', error);
@@ -111,7 +105,7 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
     async (content: string) => {
       if (!content.trim()) return;
 
-      // Add user message
+      // 1. Create user message and placeholder message
       const userMessage: ChatMessage = {
         id: Date.now().toString(),
         content,
@@ -119,14 +113,23 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
         timestamp: Date.now(),
       };
 
-      setMessages((prev) => [...prev, userMessage]);
+      const novaMessageId = (Date.now() + 1).toString();
+      const placeholderMessage: ChatMessage = {
+        id: novaMessageId,
+        content: '',
+        sender: 'nova',
+        timestamp: Date.now(),
+      };
+
+      // 2. Add both messages to state at once
+      setMessages((prev) => [...prev, userMessage, placeholderMessage]);
       setLoading(true);
       setError(null);
 
       try {
         console.log('Sending message to API...');
-        
-        // Load LLM config from AsyncStorage
+
+        // 3. Load LLM config from AsyncStorage
         let llmConfig: LLMConfig | undefined;
         try {
           const savedConfig = await AsyncStorage.getItem(LLM_CONFIG_STORAGE_KEY);
@@ -137,154 +140,195 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
         } catch (e) {
           console.log('No custom LLM config found, using default');
         }
-        
-        // Use current messages state for history (with truncation to prevent token explosion)
-        setMessages((prev) => {
-          // Keep only the last 20 messages for API context
-          const truncatedMessages = truncateHistory(prev, 20);
-          const history = truncatedMessages.map((msg) => ({
+
+        // 4. Get current messages for history (read from state)
+        const currentMessages = messages.length > 0 ? messages : [];
+        const truncatedMessages = truncateHistory(currentMessages, 20);
+        const history = truncatedMessages
+          .filter((msg) => msg.id !== novaMessageId) // Exclude placeholder
+          .map((msg) => ({
             sender: msg.sender,
             text: msg.content,
           }));
-          
-          // Create placeholder message for streaming
-          const novaMessageId = (Date.now() + 1).toString();
-          const placeholderMessage: ChatMessage = {
-            id: novaMessageId,
-            content: '',
-            sender: 'nova',
-            timestamp: Date.now(),
-          };
-          const messagesWithPlaceholder = [...prev, placeholderMessage];
-          setMessages(messagesWithPlaceholder);
-          
-          // Send API request with streaming enabled
-          const getApiBaseUrl = () => {
-            if (process.env.EXPO_PUBLIC_API_BASE_URL) {
-              return process.env.EXPO_PUBLIC_API_BASE_URL;
-            } else if (typeof window !== 'undefined') {
-              const { protocol, hostname } = window.location;
-              const apiHostname = hostname.replace(/^8081-/, '3000-');
-              if (apiHostname !== hostname) {
-                return `${protocol}//${apiHostname}`;
-              }
+
+        // 5. Construct API URL
+        const getApiBaseUrl = () => {
+          if (process.env.EXPO_PUBLIC_API_BASE_URL) {
+            return process.env.EXPO_PUBLIC_API_BASE_URL;
+          } else if (typeof window !== 'undefined') {
+            const { protocol, hostname } = window.location;
+            const apiHostname = hostname.replace(/^8081-/, '3000-');
+            if (apiHostname !== hostname) {
+              return `${protocol}//${apiHostname}`;
             }
-            return '';
-          };
-          
-          const apiBaseUrl = getApiBaseUrl();
-          const apiUrl = apiBaseUrl ? `${apiBaseUrl}/api/chat` : '/api/chat';
-          
-          fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              message: content,
-              history,
-              stream: true,
-              ...(llmConfig && { llmConfig }),
-            }),
-          })
-            .then((response) => {
-              if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-              }
-              
-              const reader = response.body?.getReader();
-              if (!reader) {
-                throw new Error('No response body');
-              }
-              
-              const decoder = new TextDecoder();
-              let buffer = '';
-              let fullContent = '';
-              
-              const processStream = async () => {
-                try {
-                  while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    
-                    buffer += decoder.decode(value, { stream: true });
-                    const lines = buffer.split('\n');
-                    buffer = lines.pop() || '';
-                    
-                    for (const line of lines) {
-                      if (line.startsWith('data: ')) {
-                        try {
-                          const data = JSON.parse(line.slice(6));
-                          
-                          if (data.error) {
-                            throw new Error(data.error);
-                          }
-                          
-                          if (data.chunk) {
-                            fullContent += data.chunk;
-                            // Update message with streaming content
-                            setMessages((prevState) =>
-                              prevState.map((msg) =>
-                                msg.id === novaMessageId
-                                  ? { ...msg, content: fullContent }
-                                  : msg
-                              )
-                            );
-                          }
-                          
-                          if (data.done) {
-                            console.log('Stream complete');
-                            setLoading(false);
-                            return;
-                          }
-                        } catch (e) {
-                          console.error('Error parsing SSE data:', e);
-                        }
-                      }
-                    }
-                  }
-                  
-                  setLoading(false);
-                } catch (err) {
-                  const errorMessage = err instanceof Error ? err.message : 'Stream error';
-                  setError(errorMessage);
-                  toast.show(errorMessage, {
-                    type: 'danger',
-                    placement: 'bottom',
-                    duration: 3000,
-                  });
-                  setLoading(false);
-                }
-              };
-              
-              processStream();
-            })
-            .catch((err) => {
-              let errorMessage = 'Unknown error';
-              
-              if (err instanceof Error) {
-                errorMessage = err.message;
-              }
-              
-              setError(errorMessage);
-              toast.show(errorMessage, {
-                type: 'danger',
-                placement: 'bottom',
-                duration: 3000,
-              });
-              console.error('Send message error:', err);
-              setLoading(false);
-            });
-          
-          return messagesWithPlaceholder;
-        });
-      } catch (err) {
+          }
+          return '';
+        };
+
+        const apiBaseUrl = getApiBaseUrl();
+        const apiUrl = apiBaseUrl ? `${apiBaseUrl}/api/chat` : '/api/chat';
+
+        // 6. Prepare request payload
+        const payload = {
+          message: content,
+          history,
+          stream: true,
+          ...(llmConfig && { llmConfig }),
+        };
+
+        // 7. Handle streaming based on platform
+        if (Platform.OS === 'web') {
+          // Web: Use fetch + ReadableStream
+          await handleWebStreaming(apiUrl, payload, novaMessageId);
+        } else {
+          // Native: Use SSEClient for better compatibility
+          await handleNativeStreaming(apiUrl, payload, novaMessageId);
+        }
+
         setLoading(false);
-        console.error('Send message setup error:', err);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+        toast.show(errorMessage, {
+          type: 'danger',
+          placement: 'bottom',
+          duration: 3000,
+        });
+        console.error('Send message error:', err);
+        setLoading(false);
       }
     },
-    []
+    [messages, toast]
   );
+
+  // Handle streaming for web platform (fetch + ReadableStream)
+  const handleWebStreaming = async (
+    apiUrl: string,
+    payload: Record<string, unknown>,
+    novaMessageId: string
+  ): Promise<void> => {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('No response body');
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let fullContent = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+
+              if (data.error) {
+                throw new Error(data.error);
+              }
+
+              if (data.chunk) {
+                fullContent += data.chunk;
+                // Update message with streaming content
+                setMessages((prevState) =>
+                  prevState.map((msg) =>
+                    msg.id === novaMessageId ? { ...msg, content: fullContent } : msg
+                  )
+                );
+              }
+
+              if (data.done) {
+                console.log('Stream complete');
+                return;
+              }
+            } catch (e) {
+              console.error('Error parsing SSE data:', e);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  // Handle streaming for native platform (SSEClient)
+  const handleNativeStreaming = async (
+    apiUrl: string,
+    payload: Record<string, unknown>,
+    novaMessageId: string
+  ): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const es = new SSEClient(apiUrl, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+
+      let fullContent = '';
+
+      es.addEventListener('message', (event) => {
+        try {
+          const data = JSON.parse(event.data);
+
+          if (data.error) {
+            throw new Error(data.error);
+          }
+
+          if (data.chunk) {
+            fullContent += data.chunk;
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === novaMessageId ? { ...msg, content: fullContent } : msg
+              )
+            );
+          }
+
+          if (data.done) {
+            console.log('Stream complete');
+            es.close();
+            resolve();
+          }
+        } catch (e) {
+          console.error('Error parsing SSE data:', e);
+          reject(e);
+        }
+      });
+
+      es.addEventListener('error', (event) => {
+        const errorMessage = event.data?.message || 'Stream error';
+        setError(errorMessage);
+        toast.show(errorMessage, {
+          type: 'danger',
+          placement: 'bottom',
+          duration: 3000,
+        });
+        es.close();
+        reject(new Error(errorMessage));
+      });
+    });
+  };
 
   const value: ChatContextType = {
     messages,
