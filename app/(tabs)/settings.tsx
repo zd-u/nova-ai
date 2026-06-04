@@ -67,7 +67,7 @@ const MODEL_PRESETS = [
   },
   {
     id: "qwen3-7-max",
-    name: "Qwen3.7-Max",
+    name: "Qwen 3.7 Max",
     provider: "Alibaba",
     apiUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
     modelId: "qwen3.7-max",

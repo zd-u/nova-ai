@@ -102,7 +102,7 @@ export default function HomeScreen() {
             {/* Nova Logo - Custom Avatar */}
             <View className="w-32 h-32 rounded-full overflow-hidden shadow-lg">
               <Image
-                source={require("@/assets/nova-avatar.webp")}
+                source={require("@/assets/images/nova-avatar.jpg")}
                 className="w-full h-full"
                 resizeMode="cover"
               />
