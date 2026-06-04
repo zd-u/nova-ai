@@ -142,13 +142,13 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
         }
 
         // 4. Get current messages for history (read from state)
-        const currentMessages = messages.length > 0 ? messages : [];
+        const currentMessages = messages && messages.length > 0 ? messages : [];
         const truncatedMessages = truncateHistory(currentMessages, 20);
         const history = truncatedMessages
           .filter((msg) => msg.id !== novaMessageId) // Exclude placeholder
           .map((msg) => ({
             sender: msg.sender,
-            text: msg.content,
+            text: msg.content || '',
           }));
 
         // 5. Construct API URL
@@ -290,6 +290,7 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
 
       es.addEventListener('message', (event) => {
         try {
+          if (!event.data) return;
           const data = JSON.parse(event.data);
 
           if (data.error) {
@@ -316,8 +317,8 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
         }
       });
 
-      es.addEventListener('error', (event) => {
-        const errorMessage = event.data?.message || 'Stream error';
+      es.addEventListener('error', () => {
+        const errorMessage = 'Stream error';
         setError(errorMessage);
         toast.show(errorMessage, {
           type: 'danger',
