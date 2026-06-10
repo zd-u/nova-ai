@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -90,6 +90,11 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
     }
   }, [messages, isInitialized]);
 
+  // Sync messages to ref for closure-free access in sendMessage
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
   const clearHistory = useCallback(() => {
     setMessages([]);
     setError(null);
@@ -142,7 +147,7 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
         }
 
         // 4. Get current messages for history (read from state)
-        const currentMessages = messages && messages.length > 0 ? messages : [];
+        const currentMessages = messagesRef.current && messagesRef.current.length > 0 ? messagesRef.current : [];
         const truncatedMessages = truncateHistory(currentMessages, 20);
         const history = truncatedMessages
           .filter((msg) => msg.id !== novaMessageId) // Exclude placeholder
