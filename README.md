@@ -16,7 +16,7 @@
 - 🎨 **Beautiful UI** - Modern, intuitive interface built with React Native & Tailwind CSS
 - 🌍 **Multi-language** - Chinese & English support with seamless switching
 - ⚡ **Fast & Responsive** - Optimized performance with conversation history truncation
-- 🔐 **Your API Keys** - You control your LLM API keys, no server-side storage
+- 🔐 **Your API Keys** - Your API keys are stored locally and forwarded to LLM providers via our server
 
 ### Supported Models (2026 Latest)
 
