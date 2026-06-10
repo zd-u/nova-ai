@@ -11,6 +11,16 @@ type MessageListProps = {
 };
 
 export function MessageList({ messages }: MessageListProps) {
+  if (!messages || messages.length === 0) {
+    return (
+      <View className="flex-1 justify-center items-center px-8">
+        <Text className="text-lg text-muted text-center">
+          {"又来了？...那我就勉为其难陪你聊会儿吧 💫"}
+        </Text>
+      </View>
+    );
+  }
+
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     const isUser = item.sender === 'user';
 
