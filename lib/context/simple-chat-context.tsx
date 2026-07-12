@@ -71,6 +71,7 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const messagesRef = useRef<ChatMessage[]>([]);
   const toast = useToast();
 
   // Load messages on mount
@@ -203,7 +204,7 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
         setLoading(false);
       }
     },
-    [messages, toast]
+    [toast]
   );
 
   // Handle streaming for web platform (fetch + ReadableStream)
