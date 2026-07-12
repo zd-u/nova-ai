@@ -1,6 +1,6 @@
 # Nova AI - Your Exclusive AI Companion
 
-[中文](#中文-版本) | [English](#english-version)
+[中文](#中文版本) | [English](#english-version)
 
 ---
 
@@ -8,96 +8,156 @@
 
 ### What is Nova AI?
 
-**Nova AI** is a cross-platform mobile AI companion app that brings an intelligent, personable conversational partner to your pocket. With dynamic personality, local memory, and universal LLM adapter support, Nova adapts to your preferences and remembers your conversations.
+**Nova AI** is a cross-platform mobile AI companion app with dynamic personality, local memory, and universal LLM adapter support. Built with React Native (Expo) + Node.js backend, Nova adapts to your preferences and remembers your conversations.
 
 **Key Features:**
-- 🤖 **Universal LLM Adapter** - Switch between any OpenAI-compatible model (DeepSeek, GPT-5, Claude, Gemini, Qwen, etc.)
-- 💾 **Local Memory** - All conversations stored locally on your device, fully private
-- 🎨 **Beautiful UI** - Modern, intuitive interface built with React Native & Tailwind CSS
-- 🌍 **Multi-language** - Chinese & English support with seamless switching
-- ⚡ **Fast & Responsive** - Optimized performance with conversation history truncation
-- 🔐 **Your API Keys** - Your API keys are stored locally and forwarded to LLM providers via our server
+- 🤖 **Universal LLM Adapter** — Switch between any OpenAI-compatible model
+- 💾 **Local Memory** — Conversations stored on-device via AsyncStorage
+- 📡 **Streaming Output** — Real-time SSE streaming for natural conversation feel
+- 🎨 **Beautiful UI** — React Native + NativeWind (Tailwind CSS)
+- 🌍 **Multi-language Auto-detect** — Chinese / English / Japanese / Korean / etc.
+- 🔐 **Your Keys, Your Control** — API keys stored locally, never logged on server
+- 🔑 **Optional OAuth Login** — User account system with JWT session (gracefully skips if not configured)
+- 🗄️ **Optional MySQL** — User persistence via Drizzle ORM (chat works without it)
 
-### Supported Models (2026 Latest)
+### Tech Stack
 
-| 模型 | modelId | 提供商 | API 地址 |
-|------|---------|--------|----------|
-| GPT-5.5 | `gpt-5.5` | OpenAI | api.openai.com |
-| Claude Opus 4.8 | `claude-opus-4-8` | Anthropic (via OpenRouter) | openrouter.ai |
-| Gemini 3.5 Flash | `gemini-3.5-flash` | Google | generativelanguage.googleapis.com |
-| Grok 4.3 | `grok-4.3` | xAI | api.x.ai |
-| DeepSeek V4 Pro | `deepseek-v4-pro` | DeepSeek | api.deepseek.com |
-| DeepSeek V4 Flash | `deepseek-v4-flash` | DeepSeek | api.deepseek.com |
-| Qwen3.7-Max | `qwen3.7-max` | Alibaba | dashscope.aliyuncs.com |
-| GLM-5.1 | `glm-5.1` | Zhipu | open.bigmodel.cn |
-| Kimi K2.6 | `kimi-k2.6` | Moonshot | api.moonshot.cn |
-| MiniMax M3 | `MiniMax-M3` | MiniMax | api.minimaxi.com |
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | React Native 0.81, Expo 54, Expo Router 6, NativeWind 4 |
+| **Backend** | Node.js, Express 4, TypeScript 5.9 |
+| **API Layer** | tRPC 11 (type-safe) + REST (chat endpoint) |
+| **Database** (optional) | MySQL + Drizzle ORM |
+| **Auth** (optional) | JWT (jose) + OAuth 2.0 |
+| **Real-time** | SSE streaming |
+
+### Supported Models
+
+| Model | modelId | Provider |
+|-------|---------|----------|
+| GPT-5.5 | `gpt-5.5` | OpenAI |
+| Claude Opus 4.8 | `claude-opus-4-8` | Anthropic (OpenRouter) |
+| Gemini 3.5 Flash | `gemini-3.5-flash` | Google |
+| Grok 4.3 | `grok-4.3` | xAI |
+| DeepSeek V4 Pro | `deepseek-v4-pro` | DeepSeek |
+| DeepSeek V4 Flash | `deepseek-v4-flash` | DeepSeek |
+| Qwen3.7-Max | `qwen3.7-max` | Alibaba |
+| GLM-5.1 | `glm-5.1` | Zhipu |
+| Kimi K2.6 | `kimi-k2.6` | Moonshot |
+| MiniMax M3 | `MiniMax-M3` | MiniMax |
 
 ### Quick Start
 
-#### 1. Prerequisites
-- Node.js 18+ and pnpm
-- Expo CLI (`npm install -g expo-cli`)
+#### Prerequisites
+- Node.js 18+ and pnpm 9+
 - An API key from your chosen LLM provider
 
-#### 2. Installation
+#### Installation
+
 ```bash
 git clone https://github.com/zd-u/nova-ai.git
 cd nova-ai
 pnpm install
 ```
 
-#### 3. Development
-```bash
-# Start both dev server and Metro bundler
-pnpm dev
+#### Configure Environment
 
-# Or run on specific platform
-pnpm android    # Android via Expo Go
-pnpm ios        # iOS via Expo Go
+Copy and edit the environment file:
+
+```bash
+cp .env.example .env
 ```
 
-#### 4. Configure Your LLM
-1. Open the app and go to **Settings**
-2. Select your preferred model or add a custom one
-3. Enter your API key
-4. Start chatting!
+**Minimal setup (chat only):**
+
+```env
+LLM_API_URL=https://api.deepseek.com/v1/chat/completions
+LLM_API_KEY=sk-your-api-key-here
+LLM_MODEL=deepseek-chat
+```
+
+These three variables are all you need. OAuth and MySQL are optional and will be gracefully skipped if not configured.
+
+For full environment variable reference, see `.env.example`.
+
+#### Development
+
+```bash
+# Start backend + Metro bundler
+pnpm dev
+
+# Or run individually
+pnpm dev:server    # Backend only
+pnpm dev:metro     # Frontend only
+```
+
+#### Configure LLM in App
+
+1. Open the app, go to **Settings**
+2. Select a preset model or enter custom API URL / Key / Model name
+3. Start chatting
 
 ### Project Structure
 
 ```
 nova-ai/
-├── app/                    # Expo Router screens
+├── app/                          # Expo Router screens
 │   ├── (tabs)/
-│   │   ├── index.tsx      # Home screen
-│   │   ├── chat.tsx       # Chat interface
-│   │   └── settings.tsx   # LLM configuration
-│   └── _layout.tsx        # Root layout with providers
-├── components/            # Reusable UI components
+│   │   ├── index.tsx             # Home screen
+│   │   ├── chat.tsx              # Chat interface
+│   │   └── settings.tsx          # LLM configuration
+│   ├── _layout.tsx               # Root layout
+│   └── oauth/callback.tsx        # OAuth callback
+├── components/                   # Reusable UI components
 ├── lib/
-│   ├── context/          # React Context (Chat, I18n)
-│   └── utils.ts          # Utility functions
-├── server/               # Node.js backend
-│   └── _core/
-│       ├── index.ts      # Express server
-│       ├── llm.ts        # Universal LLM adapter
-│       └── env.ts        # Environment config
-├── assets/               # App icons and images
+│   ├── context/
+│   │   ├── simple-chat-context.tsx   # Chat state + streaming + persistence
+│   │   └── i18n-context.tsx          # Internationalization
+│   └── utils.ts
+├── server/                       # Node.js backend
+│   ├── _core/
+│   │   ├── index.ts              # Express server + chat endpoint (SSE)
+│   │   ├── llm.ts                # Universal LLM adapter (REST + streaming)
+│   │   ├── env.ts                # Environment config
+│   │   ├── context.ts            # tRPC context (auth)
+│   │   ├── trpc.ts               # tRPC router setup
+│   │   ├── oauth.ts              # OAuth routes (optional)
+│   │   ├── sdk.ts                # Auth SDK (JWT session, OAuth token exchange)
+│   │   ├── cookies.ts            # Session cookie helpers
+│   │   ├── dataApi.ts            # Data API integration
+│   │   ├── imageGeneration.ts    # Image generation (optional)
+│   │   ├── voiceTranscription.ts # Voice transcription (optional)
+│   │   ├── notification.ts       # Push notifications (optional)
+│   │   ├── systemRouter.ts       # System tRPC routes
+│   │   └── models-2026.ts        # Model definitions
+│   ├── routers/
+│   │   └── chat.ts               # Chat tRPC router
+│   ├── routers.ts                # Main tRPC appRouter
+│   ├── db.ts                     # MySQL Drizzle ORM (optional)
+│   └── storage.ts                # Storage abstraction
+├── drizzle/                      # Database schema & migrations
+├── shared/                       # Shared constants & types
+├── scripts/                      # Build & utility scripts
+├── .env.example                  # Environment variable reference
+├── render.yaml                   # Render deployment config
 └── package.json
 ```
 
 ### Backend API
 
-The backend provides a simple REST API for LLM interactions:
+#### POST /api/chat (REST)
 
-**POST /api/chat**
+The primary chat endpoint. Supports both streaming and non-streaming modes.
+
+**Request:**
 ```json
 {
   "message": "Your message here",
   "history": [
-    { "sender": "user", "text": "Previous message" },
-    { "sender": "nova", "text": "Previous response" }
+    { "sender": "user", "text": "Hi" },
+    { "sender": "nova", "text": "Hey there~" }
   ],
+  "stream": true,
   "llmConfig": {
     "apiUrl": "https://api.deepseek.com/v1/chat/completions",
     "apiKey": "sk-xxx",
@@ -106,7 +166,10 @@ The backend provides a simple REST API for LLM interactions:
 }
 ```
 
-**Response:**
+- `llmConfig` is optional — falls back to `LLM_API_URL` / `LLM_API_KEY` / `LLM_MODEL` env vars
+- `stream: true` returns SSE (Server-Sent Events); `false` returns JSON
+
+**Non-streaming response:**
 ```json
 {
   "success": true,
@@ -114,206 +177,236 @@ The backend provides a simple REST API for LLM interactions:
 }
 ```
 
-### Personality & System Prompt
-
-Nova is designed with a **Tsundere** (傲娇) personality:
-- Intelligent and witty, with occasional cold humor
-- Genuinely caring but expresses it subtly
-- Natural conversation style, avoiding robotic responses
-- Honest about being AI when asked directly
-
-The system prompt ensures Nova:
-- Bases responses only on actual conversation history
-- Never fabricates or invents user statements
-- Adapts language based on user input (Chinese/English)
-- Maintains consistent personality across conversations
-
-### Configuration
-
-#### Environment Variables
-Create a `.env` file in the project root:
-
-```env
-# Backend LLM defaults (optional - users can override in Settings)
-LLM_API_URL=https://api.deepseek.com/v1/chat/completions
-LLM_API_KEY=sk-your-key-here
-LLM_MODEL=deepseek-chat
-
-# Server port
-PORT=3000
+**Streaming response (SSE):**
+```
+data: {"chunk":"Hello"}
+data: {"chunk":" there"}
+data: {"done":true}
 ```
 
-#### App Configuration
-Edit `app.config.ts` to customize:
-- App name and slug
-- Bundle ID (iOS/Android)
-- App icon and splash screen
-- Supported platforms
+#### tRPC Endpoints
 
-### Building for Production
+Type-safe API available at `/trpc`:
+- `system.*` — System status routes
+- `auth.me` — Get current user (public)
+- `auth.logout` — Clear session
+- `chat.*` — Chat operations
 
-#### APK (Android)
+### OAuth & User System (Optional)
+
+When OAuth environment variables are configured, Nova supports:
+
+- Third-party login (Google, Apple, GitHub, Email, etc.)
+- JWT session management
+- User profile sync from OAuth provider to MySQL
+
+**If not configured:** OAuth routes register but all tRPC procedures that require auth gracefully return `user: null`. Chat works without authentication.
+
+See `.env.example` for required OAuth variables.
+
+### Database (Optional)
+
+MySQL is only needed if you want OAuth user persistence. The app uses:
+
+- **Drizzle ORM** for type-safe queries
+- **drizzle-kit** for schema migrations
+- Graceful degradation: if `DATABASE_URL` is not set, database functions log a warning and skip
+
 ```bash
-# Build APK via Expo EAS
+# Generate & run migrations (only if DATABASE_URL is set)
+pnpm db:push
+```
+
+### Deployment
+
+#### Backend (Render / Railway / Vercel)
+
+A `render.yaml` is included for one-click Render deployment. Minimal setup:
+
+1. Connect GitHub repo
+2. Set `NODE_ENV=production`
+3. Set `LLM_API_URL`, `LLM_API_KEY`, `LLM_MODEL`
+4. Deploy
+
+#### APK / IPA (Expo EAS)
+
+```bash
+# Build Android APK locally
 eas build --platform android --local
 
-# Or use Expo CLI
-expo build:android
-```
-
-#### IPA (iOS)
-```bash
-# Build IPA via Expo EAS
+# Build iOS IPA
 eas build --platform ios --local
-
-# Or use Expo CLI
-expo build:ios
 ```
+
+### Personality
+
+Nova is designed with a **Tsundere** (傲娇) personality:
+- Intelligent, witty, occasional cold humor
+- Genuinely caring but expressed subtly
+- Natural conversation style, avoids robotic responses
+- Honest about being AI when asked directly
+- Auto-detects user language and maintains consistent tone
 
 ### Troubleshooting
 
-**"No response from server"**
-- Ensure backend is running: `pnpm dev:server`
-- Check API URL in Settings
-- Verify network connectivity
-
-**"API Key error"**
-- Verify your API key is correct
-- Check if the API URL matches your provider
-- Ensure the model name is supported by the provider
-
-**Messages not scrolling to bottom**
-- This should be fixed in the latest version
-- Try clearing app cache and restarting
-
-### Performance Optimization
-
-- **Conversation History Truncation**: Only the last 20 messages are sent to the LLM to prevent token explosion
-- **FlatList Optimization**: Configured with `maxToRenderPerBatch`, `windowSize`, and `scrollEventThrottle`
-- **Local Storage**: AsyncStorage for instant message persistence
-- **Toast Notifications**: Non-blocking error messages
+| Symptom | Solution |
+|---------|----------|
+| "No response from server" | Ensure backend is running (`pnpm dev:server`); check API URL |
+| "API Key error" | Verify API key is correct; check model name matches provider |
+| Messages not scrolling | Clear app cache and restart |
+| Build fails | Run `pnpm check` first; ensure Node.js 18+ and pnpm 9+ |
 
 ### Privacy & Security
 
-- ✅ All conversations stored locally on your device
-- ✅ Your API keys are stored locally and forwarded to LLM providers via our server
-- ✅ We never store or log your API keys
-- ✅ Open-source code for full transparency
-
-### Contributing
-
-This is an open-source project. Feel free to:
-- Report bugs and request features
-- Submit pull requests
-- Fork and customize for your needs
+- ✅ All conversations stored locally on device (AsyncStorage)
+- ✅ API keys stored locally, forwarded to LLM provider via server
+- ✅ Server never logs or stores your API keys
+- ✅ OAuth JWT secrets configurable via `JWT_SECRET`
+- ✅ Open-source (MIT) — full transparency
 
 ### License
 
-MIT License - See LICENSE file for details
-
-### Support
-
-For issues, questions, or suggestions:
-- Open an issue on GitHub
-- Check existing documentation
-- Review the code comments
+MIT License — See LICENSE file.
 
 ---
 
-## 中文 版本
+## 中文版本
 
 ### Nova AI 是什么？
 
-**Nova AI** 是一款跨平台移动 AI 伴侣应用，为你提供一个智能、有趣的对话伙伴。具有动态性格、本地记忆和通用 LLM 适配器支持，Nova 能根据你的偏好调整，并记住你的对话内容。
+**Nova AI** 是一款跨平台移动 AI 伴侣应用，具有动态性格、本地记忆和通用 LLM 适配器。基于 React Native (Expo) + Node.js 构建，支持流式输出和多语言自动检测。
 
 **核心功能：**
-- 🤖 **通用 LLM 适配器** - 支持任何 OpenAI 兼容的模型（DeepSeek、GPT-5、Claude、Gemini、Qwen 等）
-- 💾 **本地记忆** - 所有对话存储在你的设备上，完全隐私
-- 🎨 **精美界面** - 使用 React Native & Tailwind CSS 构建的现代化界面
-- 🌍 **多语言支持** - 中文和英文，无缝切换
-- ⚡ **快速响应** - 优化的性能，对话历史自动截断
-- 🔐 **你的 API Key** - 你掌控 LLM API Key，服务器不存储任何密钥
+- 🤖 **通用 LLM 适配器** — 支持任何 OpenAI 兼容模型，一键切换
+- 💾 **本地记忆** — 对话存储于手机本地（AsyncStorage），完全隐私
+- 📡 **流式输出** — 实时 SSE 流式响应，对话更自然
+- 🎨 **精美界面** — React Native + NativeWind（Tailwind CSS）
+- 🌍 **多语言自适配** — 中文 / 英文 / 日文 / 韩文等自动检测
+- 🔐 **你的 Key，你掌控** — API Key 存本地，服务器不保留
+- 🔑 **可选 OAuth 登录** — 用户系统 + JWT 会话（不配也不影响聊天）
+- 🗄️ **可选 MySQL** — Drizzle ORM 用户持久化（聊天无需数据库）
 
-### 支持的模型（2026 最新）
+### 技术栈
 
-| 模型 | modelId | 提供商 | API 地址 |
-|------|---------|--------|----------|
-| GPT-5.5 | `gpt-5.5` | OpenAI | api.openai.com |
-| Claude Opus 4.8 | `claude-opus-4-8` | Anthropic (via OpenRouter) | openrouter.ai |
-| Gemini 3.5 Flash | `gemini-3.5-flash` | Google | generativelanguage.googleapis.com |
-| Grok 4.3 | `grok-4.3` | xAI | api.x.ai |
-| DeepSeek V4 Pro | `deepseek-v4-pro` | DeepSeek | api.deepseek.com |
-| DeepSeek V4 Flash | `deepseek-v4-flash` | DeepSeek | api.deepseek.com |
-| Qwen3.7-Max | `qwen3.7-max` | Alibaba | dashscope.aliyuncs.com |
-| GLM-5.1 | `glm-5.1` | Zhipu | open.bigmodel.cn |
-| Kimi K2.6 | `kimi-k2.6` | Moonshot | api.moonshot.cn |
-| MiniMax M3 | `MiniMax-M3` | MiniMax | api.minimaxi.com |
+| 层级 | 技术 |
+|------|------|
+| **前端** | React Native 0.81, Expo 54, Expo Router 6, NativeWind 4 |
+| **后端** | Node.js, Express 4, TypeScript 5.9 |
+| **API 层** | tRPC 11（类型安全）+ REST（聊天端点） |
+| **数据库**（可选） | MySQL + Drizzle ORM |
+| **认证**（可选） | JWT (jose) + OAuth 2.0 |
+| **实时通信** | SSE 流式输出 |
 
 ### 快速开始
 
-#### 1. 前置要求
-- Node.js 18+ 和 pnpm
-- Expo CLI (`npm install -g expo-cli`)
+#### 前置要求
+- Node.js 18+ 和 pnpm 9+
 - 从你选择的 LLM 提供商获取 API Key
 
-#### 2. 安装
+#### 安装
+
 ```bash
 git clone https://github.com/zd-u/nova-ai.git
 cd nova-ai
 pnpm install
 ```
 
-#### 3. 开发
-```bash
-# 启动开发服务器和 Metro 打包器
-pnpm dev
+#### 配置环境变量
 
-# 或在特定平台运行
-pnpm android    # 通过 Expo Go 在 Android 上运行
-pnpm ios        # 通过 Expo Go 在 iOS 上运行
+```bash
+cp .env.example .env
 ```
 
-#### 4. 配置 LLM
+**最小配置（仅聊天）：**
+
+```env
+LLM_API_URL=https://api.deepseek.com/v1/chat/completions
+LLM_API_KEY=sk-your-api-key-here
+LLM_MODEL=deepseek-chat
+```
+
+仅需这三个变量即可使用。OAuth 和 MySQL 为可选，不配置会自动跳过，不影响聊天。
+
+完整环境变量参考见 `.env.example`。
+
+#### 开发
+
+```bash
+# 同时启动后端和 Metro 打包器
+pnpm dev
+
+# 或分别启动
+pnpm dev:server    # 仅后端
+pnpm dev:metro     # 仅前端
+```
+
+#### 在 App 中配置 LLM
+
 1. 打开应用，进入 **设置**
-2. 选择你喜欢的模型或添加自定义模型
-3. 输入你的 API Key
-4. 开始聊天！
+2. 选择预设模型，或手动输入 API 地址 / Key / 模型名
+3. 开始聊天
 
 ### 项目结构
 
 ```
 nova-ai/
-├── app/                    # Expo Router 屏幕
+├── app/                          # Expo Router 页面
 │   ├── (tabs)/
-│   │   ├── index.tsx      # 主屏幕
-│   │   ├── chat.tsx       # 聊天界面
-│   │   └── settings.tsx   # LLM 配置
-│   └── _layout.tsx        # 根布局和 Provider
-├── components/            # 可复用 UI 组件
+│   │   ├── index.tsx             # 主页
+│   │   ├── chat.tsx              # 聊天界面
+│   │   └── settings.tsx          # LLM 配置
+│   ├── _layout.tsx               # 根布局
+│   └── oauth/callback.tsx        # OAuth 回调
+├── components/                   # 可复用组件
 ├── lib/
-│   ├── context/          # React Context（聊天、国际化）
-│   └── utils.ts          # 工具函数
-├── server/               # Node.js 后端
-│   └── _core/
-│       ├── index.ts      # Express 服务器
-│       ├── llm.ts        # 通用 LLM 适配器
-│       └── env.ts        # 环境配置
-├── assets/               # 应用图标和图片
+│   ├── context/
+│   │   ├── simple-chat-context.tsx   # 聊天状态 + SSE 流式 + 持久化
+│   │   └── i18n-context.tsx          # 国际化
+│   └── utils.ts
+├── server/                       # Node.js 后端
+│   ├── _core/
+│   │   ├── index.ts              # Express 服务 + 聊天端点（SSE 流式）
+│   │   ├── llm.ts                # 通用 LLM 适配器（REST + 流式）
+│   │   ├── env.ts                # 环境变量配置
+│   │   ├── context.ts            # tRPC 上下文（含认证）
+│   │   ├── trpc.ts               # tRPC 路由配置
+│   │   ├── oauth.ts              # OAuth 路由（可选）
+│   │   ├── sdk.ts                # 认证 SDK（JWT 会话、OAuth token 交换）
+│   │   ├── cookies.ts            # Session cookie 工具
+│   │   ├── dataApi.ts            # 数据 API 集成
+│   │   ├── imageGeneration.ts    # 图片生成（可选）
+│   │   ├── voiceTranscription.ts # 语音转录（可选）
+│   │   ├── notification.ts       # 推送通知（可选）
+│   │   ├── systemRouter.ts       # 系统 tRPC 路由
+│   │   └── models-2026.ts        # 模型定义
+│   ├── routers/
+│   │   └── chat.ts               # 聊天 tRPC 路由
+│   ├── routers.ts                # tRPC 主路由
+│   ├── db.ts                     # MySQL Drizzle ORM（可选，优雅降级）
+│   └── storage.ts                # 存储抽象层
+├── drizzle/                      # 数据库 schema 和迁移
+├── shared/                       # 共享常量与类型
+├── scripts/                      # 构建和工具脚本
+├── .env.example                  # 环境变量参考
+├── render.yaml                   # Render 部署配置
 └── package.json
 ```
 
 ### 后端 API
 
-后端提供简单的 REST API 用于 LLM 交互：
+#### POST /api/chat
 
-**POST /api/chat**
+主聊天端点，支持流式和非流式。
+
+**请求：**
 ```json
 {
-  "message": "你的消息",
+  "message": "你好",
   "history": [
-    { "sender": "user", "text": "之前的消息" },
-    { "sender": "nova", "text": "之前的回复" }
+    { "sender": "user", "text": "嗨" },
+    { "sender": "nova", "text": "嗯，在呢~" }
   ],
+  "stream": true,
   "llmConfig": {
     "apiUrl": "https://api.deepseek.com/v1/chat/completions",
     "apiKey": "sk-xxx",
@@ -322,7 +415,10 @@ nova-ai/
 }
 ```
 
-**响应：**
+- `llmConfig` 可选，不传则回退到环境变量
+- `stream: true` 返回 SSE 流式；`false` 返回 JSON
+
+**非流式响应：**
 ```json
 {
   "success": true,
@@ -330,110 +426,83 @@ nova-ai/
 }
 ```
 
-### 性格和系统提示词
-
-Nova 被设计为具有 **傲娇（Tsundere）** 的性格：
-- 聪慧机智，偶尔带有冷幽默
-- 真诚关心，但表达方式含蓄
-- 自然的对话风格，避免机械感
-- 被直接问到时坦诚自己是 AI
-
-系统提示词确保 Nova：
-- 仅基于实际对话历史进行回复
-- 永不编造或虚构用户的言论
-- 根据用户输入自动切换语言（中文/英文）
-- 在对话中保持一致的性格
-
-### 配置
-
-#### 环境变量
-在项目根目录创建 `.env` 文件：
-
-```env
-# 后端 LLM 默认配置（可选 - 用户可在设置中覆盖）
-LLM_API_URL=https://api.deepseek.com/v1/chat/completions
-LLM_API_KEY=sk-your-key-here
-LLM_MODEL=deepseek-chat
-
-# 服务器端口
-PORT=3000
+**流式响应（SSE）：**
+```
+data: {"chunk":"你好"}
+data: {"chunk":"呀"}
+data: {"done":true}
 ```
 
-#### 应用配置
-编辑 `app.config.ts` 自定义：
-- 应用名称和 slug
-- Bundle ID（iOS/Android）
-- 应用图标和启动屏幕
-- 支持的平台
+### OAuth 和用户系统（可选）
 
-### 生产构建
+配置 OAuth 环境变量后支持：
+- 第三方登录（Google、Apple、GitHub、Email 等）
+- JWT 会话管理
+- 用户信息从 OAuth 服务同步到 MySQL
 
-#### APK（Android）
+**不配置时：** OAuth 路由正常注册，需认证的 tRPC 过程返回 `user: null`，聊天完全不受影响。
+
+OAuth 相关变量详见 `.env.example`。
+
+### 数据库（可选）
+
+仅在需要 OAuth 用户持久化时需要 MySQL：
+- Drizzle ORM 类型安全查询
+- `drizzle-kit` 管理迁移
+- 未配置 `DATABASE_URL` 时优雅降级（打印警告、跳过操作）
+
 ```bash
-# 通过 Expo EAS 构建 APK
+# 生成并执行迁移（仅在 DATABASE_URL 已配置时）
+pnpm db:push
+```
+
+### 部署
+
+#### 后端（Render / Railway / Vercel）
+
+包含 `render.yaml`，Render 一键部署：
+
+1. 连接 GitHub 仓库
+2. 设置 `NODE_ENV=production`
+3. 设置 `LLM_API_URL`、`LLM_API_KEY`、`LLM_MODEL`
+4. 点击部署
+
+#### APK / IPA（Expo EAS）
+
+```bash
+# 构建 Android APK
 eas build --platform android --local
 
-# 或使用 Expo CLI
-expo build:android
-```
-
-#### IPA（iOS）
-```bash
-# 通过 Expo EAS 构建 IPA
+# 构建 iOS IPA
 eas build --platform ios --local
-
-# 或使用 Expo CLI
-expo build:ios
 ```
+
+### 性格设定
+
+Nova 具有 **傲娇** 性格：
+- 聪慧机智，偶尔冷幽默
+- 真诚关心但表达含蓄
+- 对话风格自然，拒绝机械感
+- 被问及 AI 身份时坦诚相告
+- 自动检测用户语言，保持一致的语调和风格
 
 ### 故障排除
 
-**"No response from server"（无服务器响应）**
-- 确保后端正在运行：`pnpm dev:server`
-- 检查设置中的 API URL
-- 验证网络连接
-
-**"API Key error"（API Key 错误）**
-- 验证你的 API Key 是否正确
-- 检查 API URL 是否与你的提供商匹配
-- 确保模型名称被提供商支持
-
-**消息不滚动到底部**
-- 这个问题应该已在最新版本中修复
-- 尝试清除应用缓存并重启
-
-### 性能优化
-
-- **对话历史截断**：仅发送最后 20 条消息给 LLM，防止 token 爆炸
-- **FlatList 优化**：配置了 `maxToRenderPerBatch`、`windowSize` 和 `scrollEventThrottle`
-- **本地存储**：使用 AsyncStorage 实现即时消息持久化
-- **Toast 通知**：非阻塞式错误提示
+| 症状 | 解决方案 |
+|------|---------|
+| "No response from server" | 确认后端已启动（`pnpm dev:server`）；检查 API 地址 |
+| "API Key error" | 验证 API Key 是否正确；确认模型名与提供商一致 |
+| 消息不滚动 | 清除应用缓存后重启 |
+| 构建失败 | 先运行 `pnpm check`；确保 Node.js 18+ 和 pnpm 9+ |
 
 ### 隐私与安全
 
-- ✅ 所有对话存储在你的设备本地
-- ✅ 你的 API Key 存储在本地，通过我们的服务器转发至 AI 服务商
-- ✅ 我们永不存储或记录你的 API Key
-- ✅ 开源代码，完全透明
-
-### 贡献
-
-这是一个开源项目，欢迎：
-- 报告 bug 和提交功能请求
-- 提交 Pull Request
-- Fork 并自定义使用
+- ✅ 所有对话存储在手机本地（AsyncStorage）
+- ✅ API Key 存本地，经服务器转发至 LLM 提供商
+- ✅ 服务器不保留或记录你的 API Key
+- ✅ OAuth JWT 密钥通过 `JWT_SECRET` 可配置
+- ✅ MIT 开源协议，完全透明
 
 ### 许可证
 
-MIT License - 详见 LICENSE 文件
-
-### 支持
-
-如有问题、疑问或建议：
-- 在 GitHub 上提交 Issue
-- 查看现有文档
-- 阅读代码注释
-
----
-
-**Made with ❤️ for AI enthusiasts**
+MIT License — 详见 LICENSE 文件。
