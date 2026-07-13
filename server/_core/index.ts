@@ -197,7 +197,12 @@ async function startServer() {
 
       // 客户端断开时立即中止上游请求，避免无谓的 token 消耗与内存泄漏
       const clientAbort = new AbortController();
-      req.on("close", () => clientAbort.abort());
+      // 注意：必须用 res 的 close 事件（客户端真正断开 TCP 连接），
+      // 而非 req 的 close——req 的 close 在请求体被读完时就会触发，
+      // 会误杀正在进行的流式响应。正常结束(res.end)后不再中止。
+      res.on("close", () => {
+        if (!res.writableEnded) clientAbort.abort();
+      });
 
       try {
         // 使用 invokeLLMStream 复用所有预处理逻辑（normalizeMessage、maxTokens等）
