@@ -235,11 +235,17 @@ const PRIVATE_HOST_PATTERNS: RegExp[] = [
 const isPrivateHostname = (host: string): boolean =>
   PRIVATE_HOST_PATTERNS.some((re) => re.test(host.toLowerCase()));
 
+// 仅对 IPv4 字面量做私网判断。域名 / 非 IP 字符串一律放行，
+// 主机名层面的拦截（localhost、.local、内网 IP 字面量等）已由 isPrivateHostname 负责。
+// 旧实现把"非 4 段纯数字"的字符串（即所有域名，如 api.openai.com）都当内网拒绝，
+// 导致用户自定义域名地址被误杀、聊天功能 100% 失败。此处改为：非 IPv4 字面量直接放行。
 const isPrivateIp = (addr: string): boolean => {
-  if (addr.includes(".")) {
-    const parts = addr.split(".").map((p) => Number(p));
-    if (parts.length !== 4 || parts.some((n) => Number.isNaN(n))) return true; // 畸形 -> 按私网处理
-    const [a, b] = parts;
+  const ipv4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(addr);
+  if (ipv4) {
+    const [a, b, c, d] = ipv4.slice(1).map(Number);
+    if ([a, b, c, d].some((n) => n > 255 || Number.isNaN(n))) {
+      return false; // 畸形 IP：交给上层 URL 校验，不误杀合法域名
+    }
     if (a === 10) return true;
     if (a === 127) return true;
     if (a === 0) return true;

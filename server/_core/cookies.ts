@@ -54,7 +54,10 @@ export function getSessionCookieOptions(
     domain,
     httpOnly: true,
     path: "/",
-    sameSite: "none",
+    // sameSite: "none" 仅在安全上下文（HTTPS）下有效；非 HTTPS（如本地 http 调试）时
+    // 浏览器会拒绝 "none" + secure:false 的组合，导致 cookie 无法写入/发送。
+    // 因此在非安全请求下降级为 "lax"，保证本地开发可用。
+    sameSite: isSecureRequest(req) ? "none" : "lax",
     secure: isSecureRequest(req),
   };
 }

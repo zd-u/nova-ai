@@ -39,4 +39,13 @@ export const ENV = {
   // 逗号分隔的可信 LLM 主机白名单（除运维配置的 LLM_API_URL 外），
   // 用于客户端传入 llmConfig.apiUrl 时额外放行特定自建服务。
   llmAllowedHosts: process.env.LLM_ALLOWED_HOSTS ?? "",
+  // 独立服务配置：图片生成 / 语音转写 / 通知。
+  // 这些是与 LLM 不同的服务，默认回退到 LLM 变量（便于复用同一套 key），
+  // 建议各自独立配置以避免把聊天 key 误用于其他服务。
+  imageGenApiUrl: process.env.IMAGE_GEN_API_URL ?? process.env.LLM_API_URL ?? "",
+  imageGenApiKey: process.env.IMAGE_GEN_API_KEY ?? process.env.LLM_API_KEY ?? "",
+  whisperApiUrl: process.env.WHISPER_API_URL ?? process.env.LLM_API_URL ?? "",
+  whisperApiKey: process.env.WHISPER_API_KEY ?? process.env.LLM_API_KEY ?? "",
+  notificationApiUrl: process.env.NOTIFICATION_API_URL ?? process.env.LLM_API_URL ?? "",
+  notificationApiKey: process.env.NOTIFICATION_API_KEY ?? process.env.LLM_API_KEY ?? "",
 };

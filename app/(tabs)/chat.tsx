@@ -7,7 +7,7 @@ import { useChatContext } from '@/lib/context/simple-chat-context';
 import { useI18n } from '@/lib/context/i18n-context';
 
 export default function ChatScreen() {
-  const { messages, loading, error, sendMessage, clearHistory } = useChatContext();
+  const { messages, loading, error, sendMessage, clearHistory, stopGeneration } = useChatContext();
   const { language } = useI18n();
 
   return (
@@ -34,7 +34,7 @@ export default function ChatScreen() {
             <Text className="text-background text-sm">{error}</Text>
           </View>
         )}
-        <MessageInput onSend={sendMessage} loading={loading} />
+        <MessageInput onSend={sendMessage} loading={loading} onStop={stopGeneration} />
       </View>
       </KeyboardAvoidingView>
     </ScreenContainer>
