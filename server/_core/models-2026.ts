@@ -15,96 +15,122 @@ export type ModelPreset = {
 export const MODEL_PRESETS_2026: ModelPreset[] = [
   // DeepSeek
   {
-    id: "deepseek-v4-pro",
-    name: "DeepSeek V4-Pro",
+    id: "deepseek-chat",
+    name: "DeepSeek Chat",
     provider: "DeepSeek",
     apiUrl: "https://api.deepseek.com/v1/chat/completions",
     modelId: "deepseek-chat",
-    description: "最强推理能力，适合复杂问题",
+    description: "DeepSeek 主力，便宜好用（已实测）",
   },
   {
-    id: "deepseek-v4-flash",
-    name: "DeepSeek V4-Flash",
+    id: "deepseek-reasoner",
+    name: "DeepSeek Reasoner",
     provider: "DeepSeek",
     apiUrl: "https://api.deepseek.com/v1/chat/completions",
-    modelId: "deepseek-chat",
-    description: "快速响应，适合日常聊天",
+    modelId: "deepseek-reasoner",
+    description: "DeepSeek 推理模型，复杂问题强",
   },
 
   // OpenAI
   {
-    id: "gpt-5-4",
-    name: "GPT-5.4",
+    id: "gpt-4.1",
+    name: "GPT-4.1",
     provider: "OpenAI",
     apiUrl: "https://api.openai.com/v1/chat/completions",
-    modelId: "gpt-5.4",
-    description: "最新旗舰模型，性能最强",
+    modelId: "gpt-4.1",
+    description: "OpenAI 主力旗舰，推理与编程强",
   },
   {
-    id: "gpt-5-5-instant",
-    name: "GPT-5.5 Instant",
+    id: "gpt-4o-mini",
+    name: "GPT-4o mini",
     provider: "OpenAI",
     apiUrl: "https://api.openai.com/v1/chat/completions",
-    modelId: "gpt-5.5-instant",
-    description: "快速轻量级，适合实时对话",
+    modelId: "gpt-4o-mini",
+    description: "OpenAI 轻量快速，低成本",
   },
 
-  // Anthropic Claude
+  // Anthropic Claude (via OpenRouter)
   {
-    id: "claude-opus-4-8",
-    name: "Claude Opus 4.8",
+    id: "claude-opus-4",
+    name: "Claude Opus 4",
     provider: "Anthropic",
     apiUrl: "https://openrouter.ai/api/v1/chat/completions",
-    modelId: "anthropic/claude-opus-4-8-20250514",
-    description: "最强分析能力，适合深度思考",
+    modelId: "anthropic/claude-opus-4",
+    description: "Anthropic 最强，长文+编程+Agent",
+  },
+  {
+    id: "claude-3-7-sonnet",
+    name: "Claude 3.7 Sonnet",
+    provider: "Anthropic",
+    apiUrl: "https://openrouter.ai/api/v1/chat/completions",
+    modelId: "anthropic/claude-3-7-sonnet",
+    description: "Anthropic 均衡快速，支持推理",
   },
 
   // Google Gemini
   {
-    id: "gemini-3-5-flash",
-    name: "Gemini 3.5 Flash",
+    id: "gemini-2.5-pro",
+    name: "Gemini 2.5 Pro",
     provider: "Google",
     apiUrl: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-    modelId: "gemini-3.5-flash",
-    description: "快速高效，支持多模态",
+    modelId: "gemini-2.5-pro",
+    description: "Google 旗舰，多模态强",
   },
   {
-    id: "gemini-3-1-pro",
-    name: "Gemini 3.1 Pro",
+    id: "gemini-2.5-flash",
+    name: "Gemini 2.5 Flash",
     provider: "Google",
     apiUrl: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-    modelId: "gemini-3.1-pro",
-    description: "专业级模型，性能均衡",
+    modelId: "gemini-2.5-flash",
+    description: "Google 快速便宜，日常首选",
   },
 
   // 阿里通义千问
   {
-    id: "qwen-3-7-max",
-    name: "Qwen 3.7 Max",
+    id: "qwen-max",
+    name: "Qwen Max",
     provider: "Alibaba",
-    apiUrl: "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation",
-    modelId: "qwen-3.7-max",
+    apiUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+    modelId: "qwen-max",
     description: "国内最强模型，支持中文优化",
+  },
+  {
+    id: "qwen-plus",
+    name: "Qwen Plus",
+    provider: "Alibaba",
+    apiUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+    modelId: "qwen-plus",
+    description: "通义千问性价比，日常够用",
   },
 
   // 智谱清言
   {
-    id: "glm-5-1",
-    name: "GLM-5.1",
+    id: "glm-4-plus",
+    name: "GLM-4 Plus",
     provider: "Zhipu",
     apiUrl: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
-    modelId: "glm-5.1",
+    modelId: "glm-4-plus",
     description: "国内优秀模型，长文本处理强",
   },
 
   // 月之暗面 Kimi
   {
-    id: "kimi-k2-6",
-    name: "Kimi K2.6",
+    id: "kimi-k2",
+    name: "Kimi K2",
     provider: "Moonshot",
     apiUrl: "https://api.moonshot.cn/v1/chat/completions",
-    modelId: "moonshot-v1-128k",
+    modelId: "kimi-k2",
     description: "超长上下文，适合文档分析",
+  },
+
+  // MiniMax
+  {
+    id: "minimax-abab6.5s",
+    name: "MiniMax ABAB6.5",
+    provider: "MiniMax",
+    apiUrl: "https://api.minimaxi.com/v1/chat/completions",
+    modelId: "abab6.5s-chat",
+    description: "MiniMax 旗舰，多模态",
   },
 ];
 
