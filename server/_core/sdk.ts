@@ -39,8 +39,14 @@ class OAuthService {
   }
 
   private decodeState(state: string): string {
-    const redirectUri = atob(state);
-    return redirectUri;
+    try {
+      const redirectUri = atob(state);
+      if (!redirectUri) throw new Error("Empty state after decoding");
+      return redirectUri;
+    } catch (error) {
+      console.error("[OAuth] Failed to decode state parameter:", String(error));
+      throw new Error("Invalid OAuth state parameter. The state value is corrupted or tampered.");
+    }
   }
 
   async getTokenByCode(code: string, state: string): Promise<ExchangeTokenResponse> {
