@@ -166,7 +166,11 @@ async function startServer() {
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
-      res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
+      // Use same origin check as the CORS middleware
+      const sseOrigin = req.headers.origin;
+      if (sseOrigin && (!allowedOrigins || allowedOrigins.includes(sseOrigin))) {
+        res.setHeader("Access-Control-Allow-Origin", sseOrigin);
+      }
       res.setHeader("X-Accel-Buffering", "no");
 
       try {
@@ -216,17 +220,6 @@ async function startServer() {
   const port = await findAvailablePort();
   server.listen(port, () => {
     console.log(`[api] server listening on port ${port}`);
-    // Validate critical secrets at startup
-    if (ENV.oAuthServerUrl) {
-      if (!ENV.cookieSecret || ENV.cookieSecret.length < 32) {
-        console.warn(
-          "[security] JWT_SECRET is too short (< 32 chars). Generate: openssl rand -hex 32"
-        );
-      }
-      if (ENV.cookieSecret === "change-me-to-a-random-string-at-least-32-chars") {
-        console.warn("[security] JWT_SECRET is still the default placeholder! Replace it immediately.");
-      }
-    }
   });
 }
 
