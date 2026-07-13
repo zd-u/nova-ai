@@ -262,7 +262,8 @@ const isPrivateIp = (addr: string): boolean => {
   return false;
 };
 
-const assertNotSsrf = (targetUrl: string): void => {
+// 同时导出，供 voiceTranscription 等其它模块复用同一套 SSRF 护栏。
+export const assertNotSsrf = (targetUrl: string): void => {
   let parsed: URL;
   try {
     parsed = new URL(targetUrl);

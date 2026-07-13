@@ -26,6 +26,9 @@
  * ```
  */
 import { ENV } from "./env";
+// 复用 LLM 模块里的 SSRF 护栏（阻断内网 / 云元数据地址）。
+// audioUrl 由客户端传入、不可信，下载前必须先过这道关。
+import { assertNotSsrf } from "./llm";
 
 export type TranscribeOptions = {
   audioUrl: string; // URL to the audio file (e.g., S3 URL)
@@ -96,6 +99,18 @@ export async function transcribeAudio(
     }
 
     // Step 2: Download audio from URL
+    // SSRF 防护：audioUrl 由客户端传入、不可信。先拦掉内网 / 链路本地 / 元数据地址，
+    // 否则本服务器会被当成攻击内网或云元数据（如 http://169.254.169.254）的跳板。
+    try {
+      assertNotSsrf(options.audioUrl);
+    } catch (ssrfErr) {
+      return {
+        error: "Invalid or disallowed audio URL",
+        code: "INVALID_FORMAT",
+        details: ssrfErr instanceof Error ? ssrfErr.message : "Unknown error",
+      };
+    }
+
     let audioBuffer: Buffer;
     let mimeType: string;
     try {
