@@ -199,7 +199,9 @@ async function startServer() {
     }),
   );
 
-  const port = await findAvailablePort();
+  // 优先使用平台注入的 PORT（Render/Railway 等会分配并做健康检查）；
+  // 本地/未注入时再自动寻找可用端口。
+  const port = process.env.PORT ? Number(process.env.PORT) : await findAvailablePort();
   server.listen(port, () => {
     console.log(`[api] server listening on port ${port}`);
   });
