@@ -8,6 +8,8 @@ import { createContext } from "./context";
 import { invokeLLM, invokeLLMStream, type LLMConfig } from "./llm";
 import { ENV } from "./env";
 import { NOVA_SYSTEM_PROMPT } from "./persona";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -31,6 +33,15 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+
+  // 安全响应头（HSTS / X-Content-Type-Options / X-Frame-Options / Referrer-Policy 等）。
+  // 关掉 CSP 与 CORP：本服务是纯 API，且 Web 端（Expo web）跨域调用，避免误伤跨域读取。
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginResourcePolicy: false,
+    }),
+  );
 
   // Enable CORS for all routes - restrict origin in production to prevent CSRF
   const allowedOrigins =
@@ -70,6 +81,26 @@ async function startServer() {
     }
     next();
   });
+
+  // 限流：防止 Chat / 鉴权接口被刷爆你的 LLM 额度或打挂服务（DoS 面）。
+  // 聊天接口按 IP 限 30 次/分钟；tRPC（含鉴权）限 120 次/分钟。
+  const chatLimiter = rateLimit({
+    windowMs: 60_000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many requests, please slow down." },
+  });
+  app.use("/api/chat", chatLimiter);
+
+  const apiLimiter = rateLimit({
+    windowMs: 60_000,
+    max: 120,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many requests, please slow down." },
+  });
+  app.use("/trpc", apiLimiter);
 
   // 1mb 足够承载聊天消息（文本 + 引用历史）；过大的 body 上限是 DoS 面。
   app.use(express.json({ limit: "1mb" }));
