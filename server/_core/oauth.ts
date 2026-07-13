@@ -72,7 +72,7 @@ export function registerOAuthRoutes(app: Express) {
     }
 
     try {
-      const tokenResponse = await sdk.exchangeCodeForToken(code, state);
+      const tokenResponse = await sdk.exchangeCodeForToken(code, state, req.headers.host);
       const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
       await syncUser(userInfo);
       const sessionToken = await sdk.createSessionToken(userInfo.openId!, {
@@ -106,7 +106,7 @@ export function registerOAuthRoutes(app: Express) {
     }
 
     try {
-      const tokenResponse = await sdk.exchangeCodeForToken(code, state);
+      const tokenResponse = await sdk.exchangeCodeForToken(code, state, req.headers.host);
       const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
       const user = await syncUser(userInfo);
 
