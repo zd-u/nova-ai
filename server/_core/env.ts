@@ -15,8 +15,8 @@ if (process.env.OAUTH_SERVER_URL) {
 
 const allowedOriginsRaw = process.env.ALLOWED_ORIGINS ?? "";
 if (process.env.NODE_ENV === "production" && !allowedOriginsRaw) {
-  console.warn(
-    "[security] ALLOWED_ORIGINS is not set in production. CORS will reject all cross-origin credentialed requests."
+  throw new Error(
+    "ALLOWED_ORIGINS is required in production. Set it to a comma-separated list of trusted origins, e.g. ALLOWED_ORIGINS=https://myapp.com,https://www.myapp.com"
   );
 }
 
