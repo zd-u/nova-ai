@@ -14,3 +14,10 @@ services:
         sync: false
       - key: LLM_MODEL
         value: deepseek-chat
+      # 生产环境建议填：你的前端访问域名（逗号分隔），用于限制 CORS。
+      # 用户自带 LLM Key 时，服务器端 LLM_API_KEY 可不填。
+      - key: ALLOWED_ORIGINS
+        sync: false
+      # 可选：MySQL 连接串。不填则用户数据不持久化，但聊天功能正常。
+      - key: DATABASE_URL
+        sync: false

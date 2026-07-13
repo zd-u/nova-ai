@@ -208,21 +208,107 @@ export type LLMConfig = {
   model?: string;       // 例如: deepseek-chat, gpt-4o, claude-3-opus
 };
 
-const resolveApiUrl = (customUrl?: string) => {
+// ---------------------------------------------------------------------------
+// SSRF 防护
+// 客户端通过 llmConfig.apiUrl 传入的 URL 属于"不可信输入"。直接拿去 fetch
+// 会把本服务器变成攻击内网/云元数据的跳板（如 http://169.254.169.254、
+// http://127.0.0.1:6379）。这里在发请求前拦掉私网、链路本地与 localhost。
+// 环境变量里配置的 URL 由运维控制，视为可信，不在此拦截。
+// ---------------------------------------------------------------------------
+
+// 仅做主机名 / IP 字面量层面的拦截（不依赖 DNS，避免受限环境下解析失败导致误伤）
+const PRIVATE_HOST_PATTERNS: RegExp[] = [
+  /^localhost$/i,
+  /\.local$/i,
+  /^0\.0\.0\.0$/,
+  /^127\./,
+  /^10\./,
+  /^192\.168\./,
+  /^172\.(1[6-9]|2\d|3[0-1])\./,
+  /^169\.254\./,
+  /^::1$/,
+  /^fe80:/i,
+  /^fc[0-9a-f]/i,
+  /^fd[0-9a-f]/i,
+];
+
+const isPrivateHostname = (host: string): boolean =>
+  PRIVATE_HOST_PATTERNS.some((re) => re.test(host.toLowerCase()));
+
+const isPrivateIp = (addr: string): boolean => {
+  if (addr.includes(".")) {
+    const parts = addr.split(".").map((p) => Number(p));
+    if (parts.length !== 4 || parts.some((n) => Number.isNaN(n))) return true; // 畸形 -> 按私网处理
+    const [a, b] = parts;
+    if (a === 10) return true;
+    if (a === 127) return true;
+    if (a === 0) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    return false;
+  }
+  const v = addr.toLowerCase();
+  if (v === "::1") return true;
+  if (v.startsWith("fe80")) return true; // 链路本地
+  if (v.startsWith("fc") || v.startsWith("fd")) return true; // 唯一本地地址
+  if (v.startsWith("::ffff:")) return isPrivateIp(v.slice("::ffff:".length)); // IPv4 映射
+  return false;
+};
+
+const assertNotSsrf = (targetUrl: string): void => {
+  let parsed: URL;
+  try {
+    parsed = new URL(targetUrl);
+  } catch {
+    throw new Error(`Invalid LLM API URL: ${targetUrl}`);
+  }
+
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    throw new Error(`LLM API URL must use http(s): ${targetUrl}`);
+  }
+
+  const host = parsed.hostname;
+  if (!host) throw new Error(`LLM API URL missing host: ${targetUrl}`);
+
+  // 运维已显式放行的主机（逗号分隔），以及环境变量里配置的主机
+  const allowed = (ENV.llmAllowedHosts || "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  if (ENV.llmApiUrl) {
+    try {
+      allowed.push(new URL(ENV.llmApiUrl).hostname.toLowerCase());
+    } catch {
+      /* ignore malformed env url */
+    }
+  }
+  if (allowed.includes(host.toLowerCase())) return;
+
+  if (isPrivateHostname(host) || isPrivateIp(host)) {
+    throw new Error(`Refusing to connect to internal address: ${host}`);
+  }
+};
+
+const resolveApiUrl = async (customUrl?: string): Promise<string> => {
   // 优先级：自定义 URL > 环境变量
   if (customUrl && customUrl.trim().length > 0) {
-    return customUrl.replace(/\/$/, "");
+    const url = customUrl.replace(/\/$/, "");
+    // 客户端传入的 URL 不可信：强制 SSRF 护栏
+    assertNotSsrf(url);
+    return url;
   }
-  
+
   if (ENV.llmApiUrl && ENV.llmApiUrl.trim().length > 0) {
     let url = ENV.llmApiUrl.trim().replace(/\/$/, "");
     // Only append /v1/chat/completions if not already present
     if (!url.endsWith("/v1/chat/completions")) {
       url += "/v1/chat/completions";
     }
+    // 运维配置的 URL 可信，不再拦截
     return url;
   }
-  
+
   // No default URL - user must provide one
   return "";
 };
@@ -232,7 +318,7 @@ const resolveApiKey = (customKey?: string) => {
   if (customKey && customKey.trim().length > 0) {
     return customKey;
   }
-  
+
   return ENV.llmApiKey || "";
 };
 
@@ -241,7 +327,7 @@ const resolveModel = (customModel?: string) => {
   if (customModel && customModel.trim().length > 0) {
     return customModel;
   }
-  
+
   return ENV.llmModel || "";
 };
 
@@ -291,16 +377,12 @@ const normalizeResponseFormat = ({
   };
 };
 
-export async function invokeLLM(
+// 复用：构建请求体（invokeLLM 与 invokeLLMStream 共用）
+const buildPayload = (
   params: InvokeParams,
-  llmConfig?: LLMConfig,
-): Promise<InvokeResult> {
-  const apiKey = resolveApiKey(llmConfig?.apiKey);
-  const apiUrl = resolveApiUrl(llmConfig?.apiUrl);
-  const model = resolveModel(llmConfig?.model);
-  
-  assertApiKey(apiKey);
-
+  model: string,
+  stream: boolean,
+): Record<string, unknown> => {
   const {
     messages,
     tools,
@@ -317,6 +399,10 @@ export async function invokeLLM(
     messages: messages.map(normalizeMessage),
   };
 
+  if (stream) {
+    payload.stream = true;
+  }
+
   if (tools && tools.length > 0) {
     payload.tools = tools;
   }
@@ -329,7 +415,7 @@ export async function invokeLLM(
   // 根据模型类型调整参数
   // 优先级：请求体中的 maxTokens > 模型默认值
   const maxTokens = params.maxTokens || params.max_tokens;
-  
+
   if (model.includes("gemini")) {
     payload.max_tokens = maxTokens || 32768;
     payload.thinking = {
@@ -353,14 +439,77 @@ export async function invokeLLM(
     payload.response_format = normalizedResponseFormat;
   }
 
-  const response = await fetch(apiUrl, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(payload),
-  });
+  return payload;
+};
+
+// 复用：带"头超时"的 POST。
+// 仅在响应头未在 timeoutMs 内返回时才中止（防止上游假死把连接池拖垮），
+// 流式响应一旦开始传输就不再受该超时限制，直到客户端断开（externalSignal）。
+const postJsonWithTimeout = async (
+  url: string,
+  apiKey: string,
+  payload: Record<string, unknown>,
+  opts: { timeoutMs?: number; externalSignal?: AbortSignal } = {},
+): Promise<Response> => {
+  const timeoutMs = opts.timeoutMs ?? ENV.llmTimeoutMs ?? 30000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  if (opts.externalSignal) {
+    if (opts.externalSignal.aborted) controller.abort();
+    else opts.externalSignal.addEventListener("abort", () => controller.abort(), { once: true });
+  }
+
+  try {
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    return resp;
+  } catch (e) {
+    if (opts.externalSignal?.aborted) {
+      throw new Error("Client disconnected; upstream request aborted");
+    }
+    throw new Error(`LLM upstream request failed or timed out after ${timeoutMs}ms`);
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
+// 复用：解析配置并做前置校验
+const prepareInvocation = async (
+  params: InvokeParams,
+  llmConfig?: LLMConfig,
+): Promise<{ apiKey: string; apiUrl: string; model: string }> => {
+  const apiKey = resolveApiKey(llmConfig?.apiKey);
+  const apiUrl = await resolveApiUrl(llmConfig?.apiUrl);
+  const model = resolveModel(llmConfig?.model);
+
+  assertApiKey(apiKey);
+  if (!apiUrl) {
+    throw new Error(
+      "API_URL is not configured. Provide it via LLM_API_URL env or request llmConfig.apiUrl.",
+    );
+  }
+
+  return { apiKey, apiUrl, model };
+};
+
+export async function invokeLLM(
+  params: InvokeParams,
+  llmConfig?: LLMConfig,
+  signal?: AbortSignal,
+): Promise<InvokeResult> {
+  const { apiKey, apiUrl, model } = await prepareInvocation(params, llmConfig);
+
+  const payload = buildPayload(params, model, false);
+
+  const response = await postJsonWithTimeout(apiUrl, apiKey, payload, { externalSignal: signal });
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -384,72 +533,13 @@ export async function invokeLLM(
 export async function* invokeLLMStream(
   params: InvokeParams,
   llmConfig?: LLMConfig,
+  signal?: AbortSignal,
 ): AsyncGenerator<string> {
-  const apiKey = resolveApiKey(llmConfig?.apiKey);
-  const apiUrl = resolveApiUrl(llmConfig?.apiUrl);
-  const model = resolveModel(llmConfig?.model);
-  
-  assertApiKey(apiKey);
+  const { apiKey, apiUrl, model } = await prepareInvocation(params, llmConfig);
 
-  const {
-    messages,
-    tools,
-    toolChoice,
-    tool_choice,
-    outputSchema,
-    output_schema,
-    responseFormat,
-    response_format,
-  } = params;
+  const payload = buildPayload(params, model, true);
 
-  const payload: Record<string, unknown> = {
-    model,
-    messages: messages.map(normalizeMessage),
-    stream: true,
-  };
-
-  if (tools && tools.length > 0) {
-    payload.tools = tools;
-  }
-
-  const normalizedToolChoice = normalizeToolChoice(toolChoice || tool_choice, tools);
-  if (normalizedToolChoice) {
-    payload.tool_choice = normalizedToolChoice;
-  }
-
-  // 根据模型类型调整参数
-  const maxTokens = params.maxTokens || params.max_tokens;
-  
-  if (model.includes("gemini")) {
-    payload.max_tokens = maxTokens || 32768;
-    payload.thinking = {
-      budget_tokens: 128,
-    };
-  } else if (model.includes("claude")) {
-    payload.max_tokens = maxTokens || 2048;
-  } else {
-    payload.max_tokens = maxTokens || 2048;
-  }
-
-  const normalizedResponseFormat = normalizeResponseFormat({
-    responseFormat,
-    response_format,
-    outputSchema,
-    output_schema,
-  });
-
-  if (normalizedResponseFormat) {
-    payload.response_format = normalizedResponseFormat;
-  }
-
-  const response = await fetch(apiUrl, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(payload),
-  });
+  const response = await postJsonWithTimeout(apiUrl, apiKey, payload, { externalSignal: signal });
 
   if (!response.ok) {
     const errorText = await response.text();
