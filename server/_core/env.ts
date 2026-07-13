@@ -33,4 +33,10 @@ export const ENV = {
   llmApiUrl: process.env.LLM_API_URL ?? "",
   llmApiKey: process.env.LLM_API_KEY ?? "",
   llmModel: process.env.LLM_MODEL ?? "",
+  // 上游 LLM 响应"开始返回"（收到响应头）的最长等待时间(ms)。
+  // 仅用于兜底假死的上游，流式正文可更长；客户端断开会单独中止。
+  llmTimeoutMs: Number(process.env.LLM_TIMEOUT_MS ?? "30000") || 30000,
+  // 逗号分隔的可信 LLM 主机白名单（除运维配置的 LLM_API_URL 外），
+  // 用于客户端传入 llmConfig.apiUrl 时额外放行特定自建服务。
+  llmAllowedHosts: process.env.LLM_ALLOWED_HOSTS ?? "",
 };
