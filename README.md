@@ -33,18 +33,21 @@
 
 ### Supported Models
 
-| Model | modelId | Provider |
+| Model | modelId | Provider / API |
 |-------|---------|----------|
-| GPT-5.5 | `gpt-5.5` | OpenAI |
-| Claude Opus 4.8 | `claude-opus-4-8` | Anthropic (OpenRouter) |
-| Gemini 3.5 Flash | `gemini-3.5-flash` | Google |
-| Grok 4.3 | `grok-4.3` | xAI |
-| DeepSeek V4 Pro | `deepseek-v4-pro` | DeepSeek |
-| DeepSeek V4 Flash | `deepseek-v4-flash` | DeepSeek |
-| Qwen3.7-Max | `qwen3.7-max` | Alibaba |
-| GLM-5.1 | `glm-5.1` | Zhipu |
-| Kimi K2.6 | `kimi-k2.6` | Moonshot |
-| MiniMax M3 | `MiniMax-M3` | MiniMax |
+| DeepSeek Chat | `deepseek-chat` | DeepSeek |
+| DeepSeek Reasoner | `deepseek-reasoner` | DeepSeek |
+| GPT-4.1 | `gpt-4.1` | OpenAI |
+| GPT-4o mini | `gpt-4o-mini` | OpenAI |
+| Claude Opus 4 | `anthropic/claude-opus-4` | Anthropic (OpenRouter) |
+| Claude 3.7 Sonnet | `anthropic/claude-3-7-sonnet` | Anthropic (OpenRouter) |
+| Gemini 2.5 Pro | `gemini-2.5-pro` | Google |
+| Gemini 2.5 Flash | `gemini-2.5-flash` | Google |
+| Qwen Max | `qwen-max` | Alibaba |
+| Qwen Plus | `qwen-plus` | Alibaba |
+| GLM-4 Plus | `glm-4-plus` | Zhipu |
+| Kimi K2 | `kimi-k2` | Moonshot |
+| MiniMax ABAB6.5 | `abab6.5s-chat` | MiniMax |
 
 ### Quick Start
 

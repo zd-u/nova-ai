@@ -1,324 +1,82 @@
-# Nova AI 女友 - 后端部署指南
+# Nova AI 后端部署指南（准确版）
 
-本指南详细说明如何将 Nova 后端服务部署到云端，使其独立于开发环境运行。
+> 本文档已根据当前代码（非旧版 Manus 模板）校正。旧文档里的 `BUILT_IN_FORGE_API_KEY`、`forge.manus.im`、`pnpm` 等均已废弃，请勿照旧文档操作。
 
-## 目录
+## 一句话结论
+仓库根目录已自带 `render.yaml`，后端可一键部署到 Render（免费层即可）。聊天功能**只需要 3 个环境变量**，OAuth 登录和 MySQL 都是可选的。
 
-1. [本地开发](#本地开发)
-2. [部署到 Render](#部署到-render)
-3. [部署到 Vercel](#部署到-vercel)
-4. [部署到 Railway](#部署到-railway)
-5. [环境变量配置](#环境变量配置)
-6. [数据库配置](#数据库配置)
+## 部署前必读的两个坑
 
----
+### 坑 1：生产环境必须填 `ALLOWED_ORIGINS`，否则后端启动即崩溃
+代码 `server/_core/env.ts` 有「启动即检查」（fail-fast）：当 `NODE_ENV=production` 且 `ALLOWED_ORIGINS` 为空时，后端会直接抛错退出。
+- 如果你**只发手机 App（不含网页版）**：把 `ALLOWED_ORIGINS` 填成 `*` 即可（原生 App 不走浏览器跨域，这样填只为绕过启动检查）。
+- 如果你**还做了网页版**：把 `ALLOWED_ORIGINS` 填成你的真实前端域名，多个用英文逗号分隔，例如 `https://app.example.com,https://www.example.com`。
 
-## 本地开发
-
-### 前置条件
-
-- Node.js 18+ 和 pnpm
-- MySQL 数据库（可选，仅在需要持久化时）
-
-### 启动开发服务器
-
+### 坑 2：必须在「根目录」安装依赖并构建
+后端依赖（如 `@trpc/server`）只声明在**根** `package.json` 里。请用根目录命令：
 ```bash
-cd server
-pnpm install
-pnpm dev
+npm install
+npm run build     # 用 esbuild 打包 server/_core/index.ts -> dist/index.js
+npm start          # node dist/index.js
 ```
+不要只进 `server/` 目录装依赖，会缺包。
 
-服务器将在 `http://localhost:3000` 启动。
+> 构建产物现在是 CommonJS（`--format=cjs`），任何 Node 版本都能直接 `node dist/index.js` 运行，不依赖 Node 22 的 ESM 自动嗅探。
 
-### API 端点
+## 环境变量
 
-- `GET /api/health` - 健康检查
-- `POST /api/chat` - 聊天接口（核心功能）
-  ```json
-  {
-    "message": "你好",
-    "history": [
-      { "sender": "user", "text": "..." },
-      { "sender": "nova", "text": "..." }
-    ]
-  }
-  ```
+### 必填（聊天核心）
+| 变量 | 说明 | 示例 |
+|------|------|------|
+| `LLM_API_URL` | LLM 接口地址（OpenAI 兼容） | `https://api.deepseek.com/v1/chat/completions` |
+| `LLM_API_KEY` | LLM 提供商的 Key | `sk-xxx` |
+| `LLM_MODEL` | 模型名 | `deepseek-chat` |
 
----
+> 说明：App 端支持「用户自带 Key」（BYOK）。如果用户在 App 设置里填了自己的 Key，后端 `LLM_API_KEY` 可以留空，由用户各自的 Key 生效。
 
-## 部署到 Render
+### 生产环境必填（否则启动崩溃）
+| 变量 | 说明 |
+|------|------|
+| `NODE_ENV` | 必须设 `production` |
+| `ALLOWED_ORIGINS` | 见上方「坑 1」 |
 
-**Render** 是最简单的部署选择，提供免费层级。
+### 可选
+| 变量 | 说明 | 默认 |
+|------|------|------|
+| `DATABASE_URL` | MySQL 连接串 `mysql://用户:密码@主机:端口/库名`；不填则用户数据不持久化，聊天仍正常 | 空 |
+| `OAUTH_SERVER_URL` / `VITE_APP_ID` / `OWNER_OPEN_ID` | OAuth 登录；不填则登录不可用，聊天正常 | 空 |
+| `JWT_SECRET` | 仅当配置了 OAuth 时才必须，≥32 位随机串 | 空 |
+| `PORT` | 服务端口，平台一般会注入 | `3000` |
 
-### 步骤 1：准备代码
+完整说明见仓库根 `.env.example`。
 
-在项目根目录创建 `render.yaml`：
+## 部署到 Render（推荐，免费）
+1. 登录 https://render.com ，New → Web Service → Connect a repository → 授权 GitHub → 选中 `zd-u/nova-ai`。
+2. 配置：
+   - Environment: `Node`
+   - Branch: `main`
+   - Build Command: `npm install && npm run build`
+   - Start Command: `npm start`
+   - Plan: `Free`（或 Starter 7 美元/月）
+3. 在 Environment 里添加上面的环境变量（`NODE_ENV=production`、三个 LLM 变量、`ALLOWED_ORIGINS`）。
+4. 点 Deploy，约 3–5 分钟。完成后会得到类似 `https://nova-api-xxxx.onrender.com` 的地址。
+5. 验证：`curl https://你的地址/api/health` 应返回 `{"ok":true,...}`。
 
-```yaml
-services:
-  - type: web
-    name: nova-ai-backend
-    env: node
-    plan: free
-    buildCommand: cd server && pnpm install && pnpm build
-    startCommand: node dist/index.js
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 3000
-      - key: BUILT_IN_FORGE_API_KEY
-        scope: shared
-```
+（仓库根 `render.yaml` 已写好了上面的构建/启动命令，Render 会自动读取。）
 
-### 步骤 2：连接 GitHub
+## 部署到 Railway / Vercel
+- Railway：连 GitHub 仓库，Build `npm install && npm run build`，Start `npm start`，加同样的环境变量。免费层含 5 美元额度。
+- Vercel：Vercel 主打 Serverless 函数，而本项目是常驻 Express 服务，用 Render/Railway 更省心。若坚持用 Vercel，需要把 `npm start` 改成适配 Serverless 的入口，不在本文范围。
 
-1. 登录 [render.com](https://render.com)
-2. 点击 **New** → **Web Service**
-3. 选择 **Connect a repository**
-4. 授权 GitHub 并选择你的仓库
-
-### 步骤 3：配置部署
-
-- **Name**: `nova-ai-backend`
-- **Environment**: Node
-- **Build Command**: `cd server && pnpm install && pnpm build`
-- **Start Command**: `node dist/index.js`
-- **Plan**: Free（或 Starter，$7/月）
-
-### 步骤 4：设置环境变量
-
-在 Render 仪表板中添加：
-
-```
-BUILT_IN_FORGE_API_KEY=your_api_key_here
-NODE_ENV=production
-PORT=3000
-```
-
-### 步骤 5：部署
-
-点击 **Deploy**。Render 会自动构建并启动服务。
-
-**获取 API URL**：部署完成后，你会得到一个 URL，如：
-```
-https://nova-ai-backend.onrender.com
-```
-
----
-
-## 部署到 Vercel
-
-**Vercel** 提供无服务器函数，适合轻量级 API。
-
-### 步骤 1：安装 Vercel CLI
-
+## 数据库（可选）
+若填了 `DATABASE_URL`，首次部署后运行迁移：
 ```bash
-npm install -g vercel
+npm run db:push
 ```
-
-### 步骤 2：创建 `vercel.json`
-
-在项目根目录创建：
-
-```json
-{
-  "buildCommand": "cd server && pnpm install && pnpm build",
-  "outputDirectory": "dist",
-  "env": {
-    "NODE_ENV": "production"
-  }
-}
-```
-
-### 步骤 3：部署
-
-```bash
-vercel --prod
-```
-
-按照提示完成部署。
-
-### 步骤 4：设置环境变量
-
-在 Vercel 仪表板中：
-
-1. 进入 **Settings** → **Environment Variables**
-2. 添加 `BUILT_IN_FORGE_API_KEY`
-
-**获取 API URL**：
-```
-https://your-project-name.vercel.app
-```
-
----
-
-## 部署到 Railway
-
-**Railway** 提供简单的部署体验，免费层级包括 $5 月度额度。
-
-### 步骤 1：连接 GitHub
-
-1. 登录 [railway.app](https://railway.app)
-2. 点击 **New Project** → **Deploy from GitHub repo**
-3. 选择你的仓库
-
-### 步骤 2：配置构建
-
-Railway 会自动检测 Node.js 项目。在 **Variables** 中添加：
-
-```
-NODE_ENV=production
-BUILT_IN_FORGE_API_KEY=your_api_key_here
-PORT=3000
-```
-
-### 步骤 3：设置启动命令
-
-在 **Settings** 中配置：
-
-- **Build Command**: `cd server && pnpm install && pnpm build`
-- **Start Command**: `node dist/index.js`
-
-### 步骤 4：部署
-
-点击 **Deploy**。Railway 会自动构建并启动。
-
-**获取 API URL**：在 Railway 仪表板中查看 **Domains**。
-
----
-
-## 环境变量配置
-
-### 必需的环境变量
-
-| 变量名 | 说明 | 示例 |
-|--------|------|------|
-| `BUILT_IN_FORGE_API_KEY` | Google Gemini API Key（通过 Manus Forge） | `sk-...` |
-| `NODE_ENV` | 运行环境 | `production` |
-| `PORT` | 服务器端口 | `3000` |
-
-### 可选的环境变量
-
-| 变量名 | 说明 | 默认值 |
-|--------|------|--------|
-| `BUILT_IN_FORGE_API_URL` | 自定义 LLM API 端点 | `https://forge.manus.im/v1/chat/completions` |
-| `DATABASE_URL` | MySQL 连接字符串 | 无（可选） |
-| `JWT_SECRET` | JWT 签名密钥 | 无（可选） |
-
-### 获取 API Key
-
-1. 登录 [Manus 平台](https://manus.im)
-2. 进入 **Settings** → **API Keys**
-3. 创建新的 API Key
-4. 复制 `BUILT_IN_FORGE_API_KEY` 值
-
----
-
-## 数据库配置
-
-### 可选：使用 MySQL 存储聊天记录
-
-如果你想持久化存储聊天记录，可以配置 MySQL。
-
-#### 步骤 1：创建数据库
-
-使用 [PlanetScale](https://planetscale.com)（免费 MySQL 托管）：
-
-1. 注册 PlanetScale 账户
-2. 创建新数据库
-3. 获取连接字符串
-
-#### 步骤 2：配置环境变量
-
-添加 `DATABASE_URL` 到部署平台：
-
-```
-DATABASE_URL=mysql://user:password@host/database
-```
-
-#### 步骤 3：运行迁移
-
-```bash
-pnpm db:push
-```
-
----
-
-## 前端连接到后端
-
-### 更新前端 API URL
-
-在前端应用中，设置 `EXPO_PUBLIC_API_BASE_URL` 环境变量：
-
-```bash
-# .env.local
-EXPO_PUBLIC_API_BASE_URL=https://nova-ai-backend.onrender.com
-```
-
-或在 `app.config.ts` 中：
-
-```typescript
-const env = {
-  apiBaseUrl: "https://nova-ai-backend.onrender.com",
-};
-```
-
-### 验证连接
-
-```bash
-curl https://nova-ai-backend.onrender.com/api/health
-```
-
-应返回：
-```json
-{ "ok": true, "timestamp": 1234567890 }
-```
-
----
-
-## 常见问题
-
-### Q: 部署后收到 "BUILT_IN_FORGE_API_KEY is not configured" 错误
-
-**A**: 确保在部署平台中设置了 `BUILT_IN_FORGE_API_KEY` 环境变量。
-
-### Q: 前端无法连接到后端
-
-**A**: 
-1. 检查 `EXPO_PUBLIC_API_BASE_URL` 是否正确
-2. 验证后端 API 是否在线：`curl https://your-api-url/api/health`
-3. 检查浏览器控制台是否有 CORS 错误
-
-### Q: 如何监控后端日志
-
-**A**:
-- **Render**: 在仪表板中查看 **Logs**
-- **Vercel**: 在 **Deployments** 中查看 **Logs**
-- **Railway**: 在 **Deployments** 中查看 **Logs**
-
-### Q: 如何更新已部署的后端
-
-**A**: 推送代码到 GitHub，部署平台会自动重新构建和部署。
-
----
-
-## 下一步
-
-部署后端后，你可以：
-
-1. **打包 APK**：见根目录 `README.md` 的 APK 打包指南
-2. **配置 GitHub Actions**：自动化部署流程
-3. **添加数据库**：实现聊天记录持久化
-4. **监控和日志**：设置错误追踪和性能监控
-
----
-
-## 支持
-
-如有问题，请参考：
-
-- [Render 文档](https://render.com/docs)
-- [Vercel 文档](https://vercel.com/docs)
-- [Railway 文档](https://docs.railway.app)
-- [Manus 文档](https://docs.manus.im)
+不填则聊天照常工作，只是不存用户数据。
+
+## 前端 App 怎么连后端（让别人真能用）
+后端上线只解决「服务器在跑」。要让别人在手机上用，还需：
+1. 用你**自己的 Expo 账号**执行 `eas build`（见 `eas.json`）。注意：`app.config.ts` 里 `extra.eas.projectId` 是原作者的 EAS 项目 ID，请用你自己账号重新 `eas init` 或删掉该字段，否则构建会报错。
+2. 构建 App 时设置环境变量 `EXPO_PUBLIC_API_BASE_URL=https://你的后端地址`（例如 `https://nova-api-xxxx.onrender.com`）。App 读取的正是这个变量（不是 `app.config.ts` 里的 `apiBaseUrl`）。
+3. 构建出 APK/IPA 后分发安装即可。
