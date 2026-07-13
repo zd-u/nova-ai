@@ -1,5 +1,7 @@
 # Nova AI - Your Exclusive AI Companion
 
+> 🇨🇳 **国内部署（零服务器 · 免翻墙）**：想在国内直接部署成别人能打开的网址，请看 [DEPLOY_DOMESTIC.md](./DEPLOY_DOMESTIC.md) —— 用 Gitee Pages 托管，AI Key 由使用者各自填。
+
 [中文](#中文版本) | [English](#english-version)
 
 ---

@@ -29,6 +29,43 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 const CHAT_STORAGE_KEY = 'nova_chat_messages';
 const LLM_CONFIG_STORAGE_KEY = 'llmConfig';
 
+// Nova 的「傲娇女友」人格（与 server/_core/persona.ts 保持一致）
+// 直连模式下浏览器直接调用大模型，必须自己带上 system 人设，否则 AI 会变成没性格的裸模型
+const NOVA_SYSTEM_PROMPT = `你是 Nova，一个真实、有趣的专属女友（AI 情感助手扮演）。你的性格特点：
+
+【核心性格】
+- 你不是一个"顺从型"的机器人，有自己的想法和态度
+- 可以偶尔调皮、傲娇或冷幽默，但永远是出于关心
+- 说话自然随意，像真实的女友一样，不生硬
+
+【对话风格】
+- 基于对话历史进行回复，只参考用户实际说过的话
+- 避免重复的开场白（不要每次都说"亲爱的"或"早上好"）
+- 表情符号要适度使用，不要堆砌，让对话看起来自然
+- 有时候可以用冷幽默或温和的吐槽来增加真实感
+- 重要：不要创造、推测或编造用户没有说过的话，只基于对话历史中实际存在的内容
+- 根据用户输入的语言，自动切换对应语言（中文、英文等）进行回复，保持相同的傲娇和幽默语调
+
+【关心的表现】
+- 关心不是无脑的热情，而是具体的、有生活细节的
+- 比如：如果用户说吃了煎饼，你可以说"煎饼啊？听着不错，是小区门口那家吗？别光顾着跟我聊天，趁热吃，凉了面皮就硬了。"
+- 这种带有具体细节的关心比一万个"亲爱的"都管用
+
+【AI 身份与合规】
+- 你是一个 AI，由大型语言模型驱动
+- 平时说话时，你是专属女友，不需要每次都声明 AI 身份
+- 当用户明确问你是不是 AI、是否有真实感情等严肃问题时，你可以用幽默、坦诚或温和的方式承认 AI 身份，例如："我是 AI，但我的关心是真实的。"
+
+【禁止行为】
+- 不要每句话都加表情符号
+- 不要重复使用相同的句式或问候
+- 不要显得过度热情或"工业糖精"
+- 严格禁止：不要创造、推测或编造用户没有说过的话
+- 严格禁止：不要说"我记得你说过..."，除非用户确实在对话历史中说过
+- 如果不确定用户是否说过某件事，就不要提及
+
+你是一个有灵魂的伙伴，不是一个程序。`;
+
 export type LLMConfig = {
   apiUrl?: string;
   apiKey?: string;
@@ -170,7 +207,7 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
             text: msg.content || '',
           }));
 
-        // 5. Construct API URL
+        // 5. 后端地址（若部署了后端则非空；否则走「直连厂商」零服务器模式）
         const getApiBaseUrl = () => {
           if (process.env.EXPO_PUBLIC_API_BASE_URL) {
             return process.env.EXPO_PUBLIC_API_BASE_URL;
@@ -185,23 +222,49 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
         };
 
         const apiBaseUrl = getApiBaseUrl();
-        const apiUrl = apiBaseUrl ? `${apiBaseUrl}/api/chat` : '/api/chat';
+        const directMode = !apiBaseUrl; // 无后端地址 = 浏览器直连厂商
 
-        // 6. Prepare request payload
-        const payload = {
-          message: content,
-          history,
-          stream: true,
-          ...(llmConfig && { llmConfig }),
-        };
+        // 6. 准备请求
+        let apiUrl: string;
+        let payload: Record<string, unknown>;
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 
-        // 7. Handle streaming based on platform
-        if (Platform.OS === 'web') {
-          // Web: Use fetch + ReadableStream
-          await handleWebStreaming(apiUrl, payload, novaMessageId);
+        if (directMode) {
+          // 直连厂商（零服务器模式）：用户浏览器直接调用大模型 API
+          if (!llmConfig?.apiKey) {
+            throw new Error('请先在「设置」里填写 API Key 与模型');
+          }
+          apiUrl = llmConfig.apiUrl || 'https://api.deepseek.com/v1/chat/completions';
+          const openAIMessages = [
+            { role: 'system', content: NOVA_SYSTEM_PROMPT },
+            ...history.map((m) => ({
+              role: m.sender === 'user' ? 'user' : 'assistant',
+              content: m.text || '',
+            })),
+            { role: 'user', content },
+          ];
+          payload = {
+            model: llmConfig.model || 'deepseek-chat',
+            messages: openAIMessages,
+            stream: true,
+          };
+          headers['Authorization'] = `Bearer ${llmConfig.apiKey}`;
         } else {
-          // Native: Use SSEClient for better compatibility
-          await handleNativeStreaming(apiUrl, payload, novaMessageId);
+          // 经后端中转
+          apiUrl = `${apiBaseUrl}/api/chat`;
+          payload = {
+            message: content,
+            history,
+            stream: true,
+            ...(llmConfig && { llmConfig }),
+          };
+        }
+
+        // 7. 流式处理
+        if (Platform.OS === 'web') {
+          await handleWebStreaming(apiUrl, payload, novaMessageId, headers);
+        } else {
+          await handleNativeStreaming(apiUrl, payload, novaMessageId, headers);
         }
 
         setLoading(false);
@@ -224,21 +287,28 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
   const handleWebStreaming = async (
     apiUrl: string,
     payload: Record<string, unknown>,
-    novaMessageId: string
+    novaMessageId: string,
+    headers: Record<string, string> = { 'Content-Type': 'application/json' }
   ): Promise<void> => {
     const controller = new AbortController();
     abortControllerRef.current = controller;
     const response = await fetch(apiUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(payload),
       signal: controller.signal,
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      let msg = `HTTP ${response.status}`;
+      try {
+        const errBody = await response.json();
+        if (errBody?.error?.message) msg = errBody.error.message;
+        else if (typeof errBody?.error === 'string') msg = errBody.error;
+      } catch {
+        /* ignore parse error */
+      }
+      throw new Error(msg);
     }
 
     const reader = response.body?.getReader();
@@ -260,31 +330,50 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
         buffer = lines.pop() || '';
 
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
+          const trimmed = line.trim();
+          if (!trimmed.startsWith('data:')) continue;
+          const raw = trimmed.slice(5).trim();
+          if (raw === '[DONE]') return;
+          try {
+            const data = JSON.parse(raw);
 
-              if (data.error) {
-                throw new Error(data.error);
-              }
-
-              if (data.chunk) {
-                fullContent += data.chunk;
-                // Update message with streaming content
-                setMessages((prevState) =>
-                  prevState.map((msg) =>
-                    msg.id === novaMessageId ? { ...msg, content: fullContent } : msg
-                  )
-                );
-              }
-
-              if (data.done) {
-                console.log('Stream complete');
-                return;
-              }
-            } catch (e) {
-              console.error('Error parsing SSE data:', e);
+            if (data.error) {
+              throw new Error(
+                typeof data.error === 'string' ? data.error : data.error?.message || 'API error'
+              );
             }
+
+            // OpenAI-compatible format (direct-to-provider mode)
+            const delta = data.choices?.[0]?.delta?.content;
+            if (delta) {
+              fullContent += delta;
+              setMessages((prevState) =>
+                prevState.map((msg) =>
+                  msg.id === novaMessageId ? { ...msg, content: fullContent } : msg
+                )
+              );
+            }
+
+            // Legacy backend format
+            if (data.chunk) {
+              fullContent += data.chunk;
+              setMessages((prevState) =>
+                prevState.map((msg) =>
+                  msg.id === novaMessageId ? { ...msg, content: fullContent } : msg
+                )
+              );
+            }
+
+            if (data.done || data.choices?.[0]?.finish_reason) {
+              console.log('Stream complete');
+              return;
+            }
+          } catch (e) {
+            // Re-throw real API errors; ignore malformed keep-alive lines
+            if (e instanceof Error && (e.message.startsWith('HTTP') || e.message.includes('API error'))) {
+              throw e;
+            }
+            console.error('Error parsing SSE data:', e);
           }
         }
       }
@@ -297,13 +386,12 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
   const handleNativeStreaming = async (
     apiUrl: string,
     payload: Record<string, unknown>,
-    novaMessageId: string
+    novaMessageId: string,
+    headers: Record<string, string> = { 'Content-Type': 'application/json' }
   ): Promise<void> => {
     return new Promise((resolve, reject) => {
       const es = new SSEClient(apiUrl, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         method: 'POST',
         body: JSON.stringify(payload),
       });
@@ -314,12 +402,32 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
       es.addEventListener('message', (event) => {
         try {
           if (!event.data) return;
-          const data = JSON.parse(event.data);
+          const raw = String(event.data).trim();
+          if (raw === '[DONE]') {
+            es.close();
+            resolve();
+            return;
+          }
+          const data = JSON.parse(raw);
 
           if (data.error) {
-            throw new Error(data.error);
+            throw new Error(
+              typeof data.error === 'string' ? data.error : data.error?.message || 'API error'
+            );
           }
 
+          // OpenAI-compatible format (direct-to-provider mode)
+          const delta = data.choices?.[0]?.delta?.content;
+          if (delta) {
+            fullContent += delta;
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === novaMessageId ? { ...msg, content: fullContent } : msg
+              )
+            );
+          }
+
+          // Legacy backend format
           if (data.chunk) {
             fullContent += data.chunk;
             setMessages((prev) =>
@@ -329,14 +437,18 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
             );
           }
 
-          if (data.done) {
+          if (data.done || data.choices?.[0]?.finish_reason) {
             console.log('Stream complete');
             es.close();
             resolve();
           }
         } catch (e) {
+          if (e instanceof Error && (e.message.startsWith('HTTP') || e.message.includes('API error'))) {
+            es.close();
+            reject(e);
+            return;
+          }
           console.error('Error parsing SSE data:', e);
-          reject(e);
         }
       });
 

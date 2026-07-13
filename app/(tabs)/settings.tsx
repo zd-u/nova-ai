@@ -355,7 +355,7 @@ export default function SettingsScreen() {
               style={{ color: colors.foreground }}
             />
             <Text className="text-xs text-muted">
-              🔒 Your API Key is stored locally on your device and forwarded to the LLM provider via our server. We never store or log your keys.
+              🔒 你的 API Key 只保存在本机浏览器，由网页直连对应大模型平台（DeepSeek / 通义 / Kimi / 智谱），不经过任何服务器，我们不会存储或记录你的 Key。
             </Text>
           </View>
 
