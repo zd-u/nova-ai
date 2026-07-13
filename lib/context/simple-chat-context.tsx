@@ -19,6 +19,7 @@ export interface ChatContextType {
   error: string | null;
   sendMessage: (content: string) => Promise<void>;
   clearHistory: () => void;
+  stopGeneration: () => void;
   isInitialized: boolean;
 }
 
@@ -73,6 +74,9 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
   const [isInitialized, setIsInitialized] = useState(false);
   const messagesRef = useRef<ChatMessage[]>([]);
   const toast = useToast();
+  // 当前进行中的流式请求句柄，用于"停止生成"
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const sseRef = useRef<{ close: () => void } | null>(null);
 
   // Load messages on mount
   useEffect(() => {
@@ -105,6 +109,14 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
     } catch (error) {
       console.error('Error clearing chat history:', error);
     }
+  }, []);
+
+  const stopGeneration = useCallback(() => {
+    abortControllerRef.current?.abort();
+    sseRef.current?.close();
+    abortControllerRef.current = null;
+    sseRef.current = null;
+    setLoading(false);
   }, []);
 
   const sendMessage = useCallback(
@@ -148,7 +160,8 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
         }
 
         // 4. Get current messages for history (read from state)
-        const currentMessages = messagesRef.current && messagesRef.current.length > 0 ? messagesRef.current : [];
+        // 使用闭包内最新的 messages（本次发送前已渲染的消息），避免 messagesRef 竞态导致的历史错位
+        const currentMessages = messages;
         const truncatedMessages = truncateHistory(currentMessages, 20);
         const history = truncatedMessages
           .filter((msg) => msg.id !== novaMessageId) // Exclude placeholder
@@ -204,7 +217,7 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
         setLoading(false);
       }
     },
-    [toast]
+    [toast, messages]
   );
 
   // Handle streaming for web platform (fetch + ReadableStream)
@@ -213,12 +226,15 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
     payload: Record<string, unknown>,
     novaMessageId: string
   ): Promise<void> => {
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
+      signal: controller.signal,
     });
 
     if (!response.ok) {
@@ -291,6 +307,7 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
         method: 'POST',
         body: JSON.stringify(payload),
       });
+      sseRef.current = es;
 
       let fullContent = '';
 
@@ -343,6 +360,7 @@ export function SimpleChatProvider({ children }: { children: React.ReactNode }) 
     error,
     sendMessage,
     clearHistory,
+    stopGeneration,
     isInitialized,
   };
 

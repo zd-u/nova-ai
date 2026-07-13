@@ -61,28 +61,28 @@ const validatePayload = (input: NotificationPayload): NotificationPayload => {
 export async function notifyOwner(payload: NotificationPayload): Promise<boolean> {
   const { title, content } = validatePayload(payload);
 
-  if (!ENV.llmApiUrl) {
+  if (!ENV.notificationApiUrl) {
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Notification service URL is not configured.",
     });
   }
 
-  if (!ENV.llmApiKey) {
+  if (!ENV.notificationApiKey) {
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Notification service API key is not configured.",
     });
   }
 
-  const endpoint = buildEndpointUrl(ENV.llmApiUrl);
+  const endpoint = buildEndpointUrl(ENV.notificationApiUrl);
 
   try {
     const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         accept: "application/json",
-        authorization: `Bearer ${ENV.llmApiKey}`,
+        authorization: `Bearer ${ENV.notificationApiKey}`,
         "content-type": "application/json",
         "connect-protocol-version": "1",
       },

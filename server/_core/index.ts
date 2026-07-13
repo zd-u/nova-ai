@@ -91,15 +91,32 @@ async function startServer() {
       }
 
       // 基础入参校验，避免下游把异常输入当正常数据处理
-      const safeHistory = Array.isArray(history) ? history : [];
+      // 限制历史条数，避免超大请求耗尽 token / 内存（DoS 面）
+      const safeHistory = Array.isArray(history) ? history.slice(0, 50) : [];
       const safeLlmConfig =
         llmConfig && typeof llmConfig === "object" ? llmConfig : undefined;
 
       // Build conversation history for context
-      const conversationHistory = safeHistory.map((msg: any) => ({
-        role: msg.role || (msg.sender === "user" ? "user" : "assistant"),
-        content: msg.content || msg.text,
-      }));
+      // 安全：历史消息角色由客户端传入、不可信。只允许 user / assistant 两种角色，
+      // 任何 "system" 角色一律降级为 user，防止覆盖人格或注入越权指令。
+      const conversationHistory = safeHistory
+        .map((msg: any) => {
+          const rawRole =
+            typeof msg?.role === "string"
+              ? msg.role
+              : msg?.sender === "user"
+                ? "user"
+                : "assistant";
+          const role = rawRole === "assistant" || rawRole === "nova" ? "assistant" : "user";
+          const content =
+            typeof msg?.content === "string"
+              ? msg.content
+              : typeof msg?.text === "string"
+                ? msg.text
+                : "";
+          return { role, content };
+        })
+        .filter((m: { role: string; content: string }) => m.content.length > 0);
 
       // Build system prompt (提取到 ./persona 便于维护)
       const systemPrompt = NOVA_SYSTEM_PROMPT;

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { publicProcedure, router } from "../_core/trpc";
 import { invokeLLM } from "../_core/llm";
+import { NOVA_SYSTEM_PROMPT } from "../_core/persona";
 
 export const chatRouter = router({
   generateReply: publicProcedure
@@ -17,7 +18,7 @@ export const chatRouter = router({
           messages: [
             {
               role: "system",
-              content: "你是 Nova，一个温柔体贴的 AI 女友。用自然、亲切的语气回复用户。",
+              content: NOVA_SYSTEM_PROMPT,
             },
             {
               role: "user",

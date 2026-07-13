@@ -54,7 +54,7 @@ const MODEL_PRESETS = [
     name: "DeepSeek V4 Pro",
     provider: "DeepSeek",
     apiUrl: "https://api.deepseek.com/v1/chat/completions",
-    modelId: "deepseek-v4-pro",
+    modelId: "deepseek-chat",
     description: "DeepSeek 旗舰推理，1M 上下文",
   },
   {
@@ -62,7 +62,7 @@ const MODEL_PRESETS = [
     name: "DeepSeek V4 Flash",
     provider: "DeepSeek",
     apiUrl: "https://api.deepseek.com/v1/chat/completions",
-    modelId: "deepseek-v4-flash",
+    modelId: "deepseek-reasoner",
     description: "DeepSeek 快速版，低成本",
   },
   {

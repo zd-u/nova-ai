@@ -80,14 +80,14 @@ export async function transcribeAudio(
 ): Promise<TranscriptionResponse | TranscriptionError> {
   try {
     // Step 1: Validate environment configuration
-    if (!ENV.llmApiUrl) {
+    if (!ENV.whisperApiUrl) {
       return {
         error: "Voice transcription service is not configured",
         code: "SERVICE_ERROR",
         details: "LLM_API_URL is not set",
       };
     }
-    if (!ENV.llmApiKey) {
+    if (!ENV.whisperApiKey) {
       return {
         error: "Voice transcription service authentication is missing",
         code: "SERVICE_ERROR",
@@ -148,14 +148,14 @@ export async function transcribeAudio(
     formData.append("prompt", prompt);
 
     // Step 4: Call the transcription service
-    const baseUrl = ENV.llmApiUrl.endsWith("/") ? ENV.llmApiUrl : `${ENV.llmApiUrl}/`;
+    const baseUrl = ENV.whisperApiUrl.endsWith("/") ? ENV.whisperApiUrl : `${ENV.whisperApiUrl}/`;
 
     const fullUrl = new URL("v1/audio/transcriptions", baseUrl).toString();
 
     const response = await fetch(fullUrl, {
       method: "POST",
       headers: {
-        authorization: `Bearer ${ENV.llmApiKey}`,
+        authorization: `Bearer ${ENV.whisperApiKey}`,
         "Accept-Encoding": "identity",
       },
       body: formData,

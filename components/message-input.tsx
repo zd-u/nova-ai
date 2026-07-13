@@ -5,9 +5,10 @@ import { useColors } from '@/hooks/use-colors';
 type MessageInputProps = {
   onSend: (message: string) => Promise<void>;
   loading?: boolean;
+  onStop?: () => void;
 };
 
-export function MessageInput({ onSend, loading }: MessageInputProps) {
+export function MessageInput({ onSend, loading, onStop }: MessageInputProps) {
   const [text, setText] = useState('');
   const colors = useColors();
 
@@ -35,18 +36,18 @@ export function MessageInput({ onSend, loading }: MessageInputProps) {
         maxLength={2000}
       />
       <Pressable
-        onPress={handleSend}
-        disabled={!text.trim() || loading}
+        onPress={loading ? onStop : handleSend}
+        disabled={!loading && !text.trim()}
         style={({ pressed }) => [
           {
             opacity: pressed ? 0.7 : 1,
-            backgroundColor: !text.trim() || loading ? colors.border : colors.primary,
+            backgroundColor: loading || !text.trim() ? colors.border : colors.primary,
           },
         ]}
         className="w-10 h-10 rounded-full items-center justify-center"
       >
         {loading ? (
-          <ActivityIndicator color={colors.background} size="small" />
+          <View className="w-4 h-4 rounded-[2px] bg-background" />
         ) : (
           <Text className="text-lg">→</Text>
         )}
