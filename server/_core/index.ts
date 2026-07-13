@@ -31,18 +31,36 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
 
-  // Enable CORS for all routes - reflect the request origin to support credentials
+  // Enable CORS for all routes - restrict origin in production to prevent CSRF
+  const allowedOrigins =
+    ENV.isProduction && ENV.allowedOrigins
+      ? ENV.allowedOrigins.split(",").map((s) => s.trim())
+      : null;
+
   app.use((req, res, next) => {
     const origin = req.headers.origin;
     if (origin) {
-      res.header("Access-Control-Allow-Origin", origin);
+      // In production, only allow explicit origins with credentials
+      if (allowedOrigins && !allowedOrigins.includes(origin)) {
+        // Untrusted origin: allow without credentials (safe subset)
+        res.header("Access-Control-Allow-Origin", "null");
+      } else {
+        res.header("Access-Control-Allow-Origin", origin);
+        if (ENV.isProduction) {
+          // Production with trusted origin: set Vary for proper caching
+          res.header("Vary", "Origin");
+        }
+      }
     }
     res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     res.header(
       "Access-Control-Allow-Headers",
       "Origin, X-Requested-With, Content-Type, Accept, Authorization",
     );
-    res.header("Access-Control-Allow-Credentials", "true");
+    // Only allow credentials for trusted origins
+    if (origin && (!allowedOrigins || allowedOrigins.includes(origin))) {
+      res.header("Access-Control-Allow-Credentials", "true");
+    }
 
     // Handle preflight requests
     if (req.method === "OPTIONS") {
@@ -198,6 +216,17 @@ async function startServer() {
   const port = await findAvailablePort();
   server.listen(port, () => {
     console.log(`[api] server listening on port ${port}`);
+    // Validate critical secrets at startup
+    if (ENV.oAuthServerUrl) {
+      if (!ENV.cookieSecret || ENV.cookieSecret.length < 32) {
+        console.warn(
+          "[security] JWT_SECRET is too short (< 32 chars). Generate: openssl rand -hex 32"
+        );
+      }
+      if (ENV.cookieSecret === "change-me-to-a-random-string-at-least-32-chars") {
+        console.warn("[security] JWT_SECRET is still the default placeholder! Replace it immediately.");
+      }
+    }
   });
 }
 
