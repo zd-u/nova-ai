@@ -215,7 +215,12 @@ const resolveApiUrl = (customUrl?: string) => {
   }
   
   if (ENV.llmApiUrl && ENV.llmApiUrl.trim().length > 0) {
-    return `${ENV.llmApiUrl.replace(/\/$/, "")}/v1/chat/completions`;
+    let url = ENV.llmApiUrl.trim().replace(/\/$/, "");
+    // Only append /v1/chat/completions if not already present
+    if (!url.endsWith("/v1/chat/completions")) {
+      url += "/v1/chat/completions";
+    }
+    return url;
   }
   
   // No default URL - user must provide one
