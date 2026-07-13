@@ -1,11 +1,21 @@
 import * as Linking from "expo-linking";
 import * as ReactNative from "react-native";
+import Constants from "expo-constants";
 
-// Extract scheme from bundle ID (last segment timestamp)
-// e.g., "space.nova.ai.t20240115103045" -> "novaai20240115103045"
-const bundleId = "space.nova.ai.t20251230231724";
-const timestamp = bundleId.split(".").pop()?.replace(/^t/, "") ?? "";
-const schemeFromBundleId = `novaai${timestamp}`;
+// Derive bundle ID and scheme from app.config.ts at runtime
+// Fallback to env variable or reasonable default if not available
+const bundleId =
+  Constants.expoConfig?.ios?.bundleIdentifier ??
+  Constants.expoConfig?.android?.package ??
+  process.env.EXPO_PUBLIC_BUNDLE_ID ??
+  "com.novaai.t20260601";
+const schemeFromBundleId =
+  Constants.expoConfig?.scheme ??
+  // Extract timestamp from bundle ID as fallback
+  (() => {
+    const ts = bundleId.split(".").pop()?.replace(/^t/, "") ?? "";
+    return `novaai${ts}`;
+  })();
 
 const env = {
   portal: process.env.EXPO_PUBLIC_OAUTH_PORTAL_URL ?? "",
