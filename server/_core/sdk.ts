@@ -38,10 +38,57 @@ class OAuthService {
     }
   }
 
-  private decodeState(state: string): string {
+  private decodeState(state: string, requestHost?: string): string {
     try {
       const redirectUri = atob(state);
       if (!redirectUri) throw new Error("Empty state after decoding");
+
+      // Validate redirectUri to prevent open redirect phishing
+      try {
+        const url = new URL(redirectUri);
+        // Build allowed hosts: request host + allowed origins
+        const allowedHosts = new Set<string>();
+        if (requestHost) {
+          allowedHosts.add(requestHost.split(":")[0]);
+        }
+        if (ENV.allowedOrigins) {
+          for (const origin of ENV.allowedOrigins.split(",")) {
+            try {
+              const h = new URL(origin.trim()).hostname;
+              allowedHosts.add(h);
+            } catch {}
+          }
+        }
+        // Always allow localhost for development
+        allowedHosts.add("localhost");
+        allowedHosts.add("127.0.0.1");
+
+        if (
+          allowedHosts.size > 0 &&
+          ![...allowedHosts].some(
+            (host) =>
+              url.hostname === host || url.hostname.endsWith("." + host)
+          )
+        ) {
+          console.error(
+            `[OAuth] Redirect URI host "${url.hostname}" not in allowed list: ${[...allowedHosts].join(", ")}`
+          );
+          throw new Error("Untrusted redirect URI in state parameter");
+        }
+      } catch (urlErr) {
+        // If redirectUri is not a valid URL (e.g., deep link scheme), check scheme whitelist
+        const allowedSchemes = new Set(["novaai", "exp", "myapp"]);
+        // Also allow scheme derived from ENV
+        const colonIdx = redirectUri.indexOf(":");
+        if (colonIdx > 0) {
+          const scheme = redirectUri.substring(0, colonIdx);
+          if (!allowedSchemes.has(scheme) && !scheme.startsWith("novaai")) {
+            console.error(`[OAuth] Untrusted redirect scheme: ${scheme}`);
+            throw new Error("Untrusted redirect scheme in state parameter");
+          }
+        }
+      }
+
       return redirectUri;
     } catch (error) {
       console.error("[OAuth] Failed to decode state parameter:", String(error));
@@ -49,12 +96,12 @@ class OAuthService {
     }
   }
 
-  async getTokenByCode(code: string, state: string): Promise<ExchangeTokenResponse> {
+  async getTokenByCode(code: string, state: string, requestHost?: string): Promise<ExchangeTokenResponse> {
     const payload: ExchangeTokenRequest = {
       clientId: ENV.appId,
       grantType: "authorization_code",
       code,
-      redirectUri: this.decodeState(state),
+      redirectUri: this.decodeState(state, requestHost),
     };
 
     const { data } = await this.client.post<ExchangeTokenResponse>(EXCHANGE_TOKEN_PATH, payload);
@@ -108,8 +155,8 @@ class SDKServer {
    * @example
    * const tokenResponse = await sdk.exchangeCodeForToken(code, state);
    */
-  async exchangeCodeForToken(code: string, state: string): Promise<ExchangeTokenResponse> {
-    return this.oauthService.getTokenByCode(code, state);
+  async exchangeCodeForToken(code: string, state: string, requestHost?: string): Promise<ExchangeTokenResponse> {
+    return this.oauthService.getTokenByCode(code, state, requestHost);
   }
 
   /**
